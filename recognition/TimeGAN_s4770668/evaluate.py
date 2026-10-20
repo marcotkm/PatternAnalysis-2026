@@ -15,7 +15,7 @@ from dataset import (
     build_features,
     fit_standardiser,
 )
-
+from skimage.metrics import structural_similarity
 
 def generate_var_transitions(
     intercept, transition, residuals, initial_states,
@@ -223,6 +223,54 @@ def absolute_return_correlations(return_sequences, lags=(1, 5, 10, 20)):
 
     return np.asarray(correlations)
 
+def volume_windows(books, length=100):
+    """Real volumes aligned with the existing transition windows."""
+    count = (len(books) - 1) // length
+    return (
+        books[1:count * length + 1, 1::2]
+        .astype(np.float64)
+        .reshape(count, length, 20)
+    )
+
+
+def depth_images(volumes, log_scale):
+    """Create SSIM-only images; retain clipping counts for transparency."""
+    if not np.isfinite(volumes).all():
+        raise ValueError("Non-finite depth values.")
+
+    below = volumes < 0
+    scaled = np.log1p(np.maximum(volumes, 0)) / log_scale
+    above = scaled > 1
+
+    images = np.clip(scaled, 0, 1)
+    clipping_percent = 100 * np.mean(below | above)
+    return images, clipping_percent
+
+
+def paired_depth_ssim(reference, candidate):
+    """Return mean ask and bid SSIM across paired 10 × 100 arrays."""
+    if reference.shape != candidate.shape:
+        raise ValueError("SSIM pairs must have identical shapes.")
+
+    scores = []
+    for real, synthetic in zip(reference, candidate):
+        side_scores = []
+        for side in (slice(0, 20, 2), slice(1, 20, 2)):
+            side_scores.append(
+                structural_similarity(
+                    real[:, side].T,
+                    synthetic[:, side].T,
+                    data_range=1.0,
+                    win_size=7,
+                    channel_axis=None,
+                    gaussian_weights=False,
+                    use_sample_covariance=True,
+                )
+            )
+        scores.append(side_scores)
+
+    return np.asarray(scores).mean(axis=0)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, required=True)
@@ -315,7 +363,40 @@ def main():
     for lag, correlation in zip(lags, real_correlations):
         print(f"  Event lag {lag}: {correlation:.6f}")
     
+    depth_log_scale = np.log1p(
+        train_books[:, 1::2].astype(np.float64).max()
+    )
+    if depth_log_scale <= 0:
+        raise ValueError("Training depth scale must be positive.")
+
+    real_depth = volume_windows(validation_books)
+    real_images, real_clip_percent = depth_images(
+        real_depth, depth_log_scale
+    )
+
+    ssim_collected = {
+        "Real versus real": [],
+        "VAR(1)": [],
+        "TimeGAN": [],
+    }
+    depth_clip_collected = {"VAR(1)": [], "TimeGAN": []}
+
+    print(f"Validation depth values clipped for SSIM: {real_clip_percent:.4f}%")
+
     for seed in seeds:
+        pair_rng = np.random.default_rng(1000 + seed)
+
+        # Two disjoint sets: no real window is paired with itself.
+        selected = pair_rng.choice(
+            len(real_images), size=64, replace=False
+        )
+        reference_images = real_images[selected[:32]]
+        comparison_images = real_images[selected[32:]]
+
+        ssim_collected["Real versus real"].append(
+            paired_depth_ssim(reference_images, comparison_images)
+        )
+
         var_generated = generate_var_transitions(
             intercept, transition, residuals, initial_states,
             length=100, seed=seed,
@@ -332,6 +413,15 @@ def main():
             prices, volumes = reconstruct_books(
                 generated, mean, scale, initial_prices
             )
+
+            # SSIM belongs here, after generated volumes are available.
+            synthetic_images, clipped_percent = depth_images(
+                volumes, depth_log_scale
+            )
+            ssim_collected[model_name].append(
+                paired_depth_ssim(reference_images, synthetic_images)
+            )
+            depth_clip_collected[model_name].append(clipped_percent)
 
             synthetic_observations = market_observations(
                 prices, initial_prices
@@ -459,6 +549,26 @@ def main():
             f"{errors.mean():.6f} ± {errors.std(ddof=1):.6f}"
         )
 
+    print("\nDepth SSIM: mean ± SD across seed/pairing repetitions")
+    for name, rows in ssim_collected.items():
+        scores = np.asarray(rows)
+        means = scores.mean(axis=0)
+        stds = scores.std(axis=0, ddof=1)
+        combined = scores.mean(axis=1)
+
+        print(f"\n{name}")
+        print(f"Ask SSIM: {means[0]:.6f} ± {stds[0]:.6f}")
+        print(f"Bid SSIM: {means[1]:.6f} ± {stds[1]:.6f}")
+        print(
+            f"Mean of sides: {combined.mean():.6f} "
+            f"± {combined.std(ddof=1):.6f}"
+        )
+
+        if name in depth_clip_collected:
+            print(
+                "Mean depth values clipped for SSIM: "
+                f"{np.mean(depth_clip_collected[name]):.4f}%"
+            )
 
 if __name__ == "__main__":
     main()
