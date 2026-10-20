@@ -7,10 +7,15 @@ COMP3710 — Section 2.7: Time-Series Generation (Hard difficulty).
 Investigate whether TimeGAN generates realistic AMZN Level 10 limit order book sequences, preserving market structure and temporal behaviour compared with a VAR(1) baseline. Evaluate whether the generated data could support trading-strategy backtesting, and identify its limitations.
 
 ## Status
-- Feasibility consultation completed; VAR(1) baseline approved.
-- Data loading, chronological splitting and reversible preprocessing implemented and checked.
-- VAR(1) fitting and generation smoke test completed.
-- TimeGAN implementation and final comparative evaluation remain outstanding.
+- Feasibility check-off completed; VAR(1) baseline approved.
+- Data auditing, chronological splitting and reversible preprocessing implemented and checked.
+- VAR(1) fitted and evaluated.
+- TimeGAN trained locally on CPU using reconstruction pretraining, supervisor pretraining and 10 epochs of joint training.
+- Preliminary validation comparisons completed across five generation seeds, including structural violations, histogram KL divergence and absolute-return lag correlations.
+- Three predefined visual case studies produced.
+- Depth-heatmap SSIM, complete resource profiling, model refinement and final held-out test evaluation remain outstanding.
+
+All current comparative results are development results. The test period has not yet been used for final evaluation.
 
 ## Feasibility Review
 The approved plan is available in [feasibility-review.md](feasibility-review.md). Its contents will be incorporated into this README for final submission.
