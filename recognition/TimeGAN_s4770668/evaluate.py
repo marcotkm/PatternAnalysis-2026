@@ -112,14 +112,110 @@ def generate_timegan(checkpoint_path, mean, scale, count=32, length=100, seed=42
 
     return generated
 
+def market_observations(prices, initial_prices):
+    """Extract spreads and mid-price log returns within each sequence."""
+    best_ask = prices[:, :, 0]
+    best_bid = prices[:, :, 1]
+    spreads = best_ask - best_bid
+    mid = (best_ask + best_bid) / 2.0
+
+    initial_mid = (
+        initial_prices[:, 0] + initial_prices[:, 1]
+    ) / 2.0
+
+    if (
+        not np.isfinite(mid).all()
+        or not np.isfinite(initial_mid).all()
+        or np.any(mid <= 0)
+        or np.any(initial_mid <= 0)
+    ):
+        raise ValueError("Cannot calculate returns from invalid mid-prices.")
+
+    # Include the return from each anchor to its first generated book.
+    with_initial = np.concatenate(
+        [initial_mid[:, None], mid], axis=1
+    )
+    returns = np.diff(np.log(with_initial), axis=1)
+
+    return {
+        "spread": spreads.ravel(),
+        "mid_return": returns.ravel(),
+    }
+
+
+def real_window_observations(books, length=100):
+    """Extract real observations using the same window/anchor convention."""
+    n_windows = (len(books) - 1) // length
+    if n_windows == 0:
+        raise ValueError("Not enough records for a real reference window.")
+
+    used = n_windows * length
+    prices = (
+        books[1:used + 1, 0::2].astype(np.float64)
+        .reshape(n_windows, length, 20) / 10000.0
+    )
+    starts = np.arange(n_windows) * length
+    initial_prices = books[starts, 0::2] / 10000.0
+
+    return market_observations(prices, initial_prices)
+
+
+def training_bins(values, interior_bins=50):
+    """Training-range bins plus explicit lower and upper tail bins."""
+    if not np.isfinite(values).all():
+        raise ValueError("Non-finite values used to define histogram bins.")
+
+    lower = float(values.min())
+    upper = float(values.max())
+
+    if lower == upper:
+        padding = max(abs(lower) * 0.01, 1e-8)
+        lower -= padding
+        upper += padding
+
+    # Include the training maximum in the interior range.
+    upper = np.nextafter(upper, np.inf)
+    edges = np.linspace(lower, upper, interior_bins + 1)
+    return np.concatenate(([-np.inf], edges, [np.inf]))
+
+
+def histogram_kl(real, synthetic, edges, smoothing=1e-6):
+    """KL(real || synthetic), in nats, with probability smoothing."""
+    if (
+        len(real) == 0 or len(synthetic) == 0
+        or not np.isfinite(real).all()
+        or not np.isfinite(synthetic).all()
+    ):
+        raise ValueError("KL inputs must be nonempty and finite.")
+
+    real_counts = np.histogram(real, bins=edges)[0]
+    fake_counts = np.histogram(synthetic, bins=edges)[0]
+
+    if real_counts.sum() != len(real) or fake_counts.sum() != len(synthetic):
+        raise ValueError("Histogram discarded observations.")
+
+    p = real_counts / real_counts.sum()
+    q = fake_counts / fake_counts.sum()
+
+    # Add the same probability floor, then renormalise.
+    p = (p + smoothing) / (1 + smoothing * len(p))
+    q = (q + smoothing) / (1 + smoothing * len(q))
+
+    return float(np.sum(p * np.log(p / q)))
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--bins", type=int, default=50)
     args = parser.parse_args()
+    if args.bins < 2:
+        raise ValueError("Use at least two interior histogram bins.")
 
     messages, books = load_lobster(args.data_dir)
-    train_books = chronological_split(messages, books)["train"][1]
+    splits = chronological_split(messages, books)
+    train_books = splits["train"][1]
+    validation_books = splits["validation"][1]
 
     _, features = build_features(train_books)
     mean, scale = fit_standardiser(features)
@@ -169,6 +265,24 @@ def main():
     print("Next-transition price and volume alignment checks passed.")
     print("Fixed training-based anchors; five generation seeds.")
 
+    training_reference = real_window_observations(train_books)
+    validation_reference = real_window_observations(validation_books)
+
+    histogram_edges = {
+        name: training_bins(values, interior_bins=args.bins)
+        for name, values in training_reference.items()
+    }
+    kl_collected = {"VAR(1)": [], "TimeGAN": []}
+
+    print(
+        f"KL reference: validation; bins: {args.bins} training-range bins "
+        "+ 2 tail bins; probability smoothing: 1e-6."
+    )
+    print(
+        "Validation reference transitions:",
+        len(validation_reference["spread"]),
+    )
+    
     for seed in seeds:
         var_generated = generate_var_transitions(
             intercept, transition, residuals, initial_states,
@@ -185,6 +299,54 @@ def main():
         ]:
             prices, volumes = reconstruct_books(
                 generated, mean, scale, initial_prices
+            )
+
+            synthetic_observations = market_observations(
+                prices, initial_prices
+            )
+
+            if seed == seeds[0]:
+                real_returns = validation_reference["mid_return"]
+                fake_returns = synthetic_observations["mid_return"]
+
+                print(f"\nReturn diagnostics — {model_name}, seed {seed}")
+                for label, values in [
+                    ("Real validation", real_returns),
+                    ("Synthetic", fake_returns),
+                ]:
+                    quantiles = np.quantile(
+                        values, [0, 0.01, 0.5, 0.99, 1]
+                    )
+                    print(
+                        f"{label}: exact-zero={100 * np.mean(values == 0):.2f}%"
+                        f" | std={values.std():.8e}"
+                    )
+                    print(
+                        "  min / p1 / median / p99 / max:",
+                        np.array2string(quantiles, precision=8),
+                    )
+
+                edges = histogram_edges["mid_return"]
+                zero_bin = np.searchsorted(edges, 0.0, side="right") - 1
+                print(
+                    "Bin containing zero:",
+                    edges[zero_bin], "to", edges[zero_bin + 1],
+                )
+
+            kl_values = [
+                histogram_kl(
+                    validation_reference[name],
+                    synthetic_observations[name],
+                    histogram_edges[name],
+                )
+                for name in ("spread", "mid_return")
+            ]
+            kl_collected[model_name].append(kl_values)
+
+            print(
+                f"Seed {seed} | {model_name} | "
+                f"Spread KL={kl_values[0]:.6f} | "
+                f"Mid-return KL={kl_values[1]:.6f}"
             )
 
             asks = prices[:, :, 0::2]
@@ -221,6 +383,16 @@ def main():
         print(f"\n{model_name}: 16,000 generated snapshots")
         for label, mean_rate, std_rate in zip(labels, means, stds):
             print(f"{label}: {mean_rate:.2f}% ± {std_rate:.2f} pp")
+
+    print("\nKL(real validation || synthetic): mean ± seed SD, in nats")
+    for model_name, rows in kl_collected.items():
+        values = np.asarray(rows)
+        means = values.mean(axis=0)
+        stds = values.std(axis=0, ddof=1)
+
+        print(f"\n{model_name}")
+        print(f"Spread KL: {means[0]:.6f} ± {stds[0]:.6f}")
+        print(f"Mid-return KL: {means[1]:.6f} ± {stds[1]:.6f}")
 
 
 if __name__ == "__main__":
