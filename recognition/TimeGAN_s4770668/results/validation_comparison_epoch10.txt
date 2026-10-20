@@ -3,6 +3,12 @@ Fixed training-based anchors; five generation seeds.
 KL reference: validation; bins: 50 training-range bins + 2 tail bins; probability smoothing: 1e-6.
 Validation reference transitions: 34600
 
+Real validation absolute-return correlations:
+  Event lag 1: 0.096023
+  Event lag 5: 0.032203
+  Event lag 10: 0.018564
+  Event lag 20: 0.015676
+
 Return diagnostics — VAR(1), seed 42
 Real validation: exact-zero=92.68% | std=2.08460214e-05
   min / p1 / median / p99 / max: [-5.19498131e-04 -6.77162841e-05  0.00000000e+00  6.76887823e-05
@@ -66,3 +72,19 @@ Mid-return KL: 0.537672 ± 0.015181
 TimeGAN
 Spread KL: 0.213062 ± 0.049741
 Mid-return KL: 0.673520 ± 0.029302
+
+Absolute-return lag correlations: mean ± generation-seed SD
+
+VAR(1)
+Lag 1: real=0.096023 | synthetic=0.202860 ± 0.007964
+Lag 5: real=0.032203 | synthetic=0.012092 ± 0.018793
+Lag 10: real=0.018564 | synthetic=-0.002993 ± 0.012738
+Lag 20: real=0.015676 | synthetic=-0.003420 ± 0.023792
+Mean absolute correlation error: 0.044046 ± 0.010317
+
+TimeGAN
+Lag 1: real=0.096023 | synthetic=0.762220 ± 0.004069
+Lag 5: real=0.032203 | synthetic=-0.104776 ± 0.032003
+Lag 10: real=0.018564 | synthetic=-0.054569 ± 0.043191
+Lag 20: real=0.015676 | synthetic=-0.011393 ± 0.027711
+Mean absolute correlation error: 0.226809 ± 0.010021

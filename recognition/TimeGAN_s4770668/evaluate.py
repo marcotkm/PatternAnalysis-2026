@@ -140,6 +140,7 @@ def market_observations(prices, initial_prices):
     return {
         "spread": spreads.ravel(),
         "mid_return": returns.ravel(),
+        "mid_return_sequences": returns,
     }
 
 
@@ -202,6 +203,25 @@ def histogram_kl(real, synthetic, edges, smoothing=1e-6):
     q = (q + smoothing) / (1 + smoothing * len(q))
 
     return float(np.sum(p * np.log(p / q)))
+
+def absolute_return_correlations(return_sequences, lags=(1, 5, 10, 20)):
+    """Pooled lag correlations using pairs within each sequence only."""
+    absolute_returns = np.abs(return_sequences)
+    correlations = []
+
+    for lag in lags:
+        if lag >= absolute_returns.shape[1]:
+            raise ValueError("Lag must be shorter than the sequence.")
+
+        earlier = absolute_returns[:, :-lag].ravel()
+        later = absolute_returns[:, lag:].ravel()
+
+        if earlier.std() == 0 or later.std() == 0:
+            correlations.append(np.nan)
+        else:
+            correlations.append(np.corrcoef(earlier, later)[0, 1])
+
+    return np.asarray(correlations)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -269,8 +289,10 @@ def main():
     validation_reference = real_window_observations(validation_books)
 
     histogram_edges = {
-        name: training_bins(values, interior_bins=args.bins)
-        for name, values in training_reference.items()
+        name: training_bins(
+            training_reference[name], interior_bins=args.bins
+        )
+        for name in ("spread", "mid_return")
     }
     kl_collected = {"VAR(1)": [], "TimeGAN": []}
 
@@ -282,6 +304,16 @@ def main():
         "Validation reference transitions:",
         len(validation_reference["spread"]),
     )
+
+    lags = (1, 5, 10, 20)
+    real_correlations = absolute_return_correlations(
+        validation_reference["mid_return_sequences"], lags
+    )
+    temporal_collected = {"VAR(1)": [], "TimeGAN": []}
+
+    print("\nReal validation absolute-return correlations:")
+    for lag, correlation in zip(lags, real_correlations):
+        print(f"  Event lag {lag}: {correlation:.6f}")
     
     for seed in seeds:
         var_generated = generate_var_transitions(
@@ -303,6 +335,12 @@ def main():
 
             synthetic_observations = market_observations(
                 prices, initial_prices
+            )
+
+            temporal_collected[model_name].append(
+                absolute_return_correlations(
+                    synthetic_observations["mid_return_sequences"], lags
+                )
             )
 
             if seed == seeds[0]:
@@ -393,6 +431,33 @@ def main():
         print(f"\n{model_name}")
         print(f"Spread KL: {means[0]:.6f} ± {stds[0]:.6f}")
         print(f"Mid-return KL: {means[1]:.6f} ± {stds[1]:.6f}")
+
+    print("\nAbsolute-return lag correlations: mean ± generation-seed SD")
+    for model_name, rows in temporal_collected.items():
+        values = np.asarray(rows)
+
+        if not np.isfinite(values).all():
+            print(f"{model_name}: undefined correlation in at least one sample.")
+            continue
+
+        means = values.mean(axis=0)
+        stds = values.std(axis=0, ddof=1)
+
+        print(f"\n{model_name}")
+        for lag, real, mean_value, std_value in zip(
+            lags, real_correlations, means, stds
+        ):
+            print(
+                f"Lag {lag}: real={real:.6f} | "
+                f"synthetic={mean_value:.6f} ± {std_value:.6f}"
+            )
+
+        # Calculate mismatch separately for each seed before averaging.
+        errors = np.abs(values - real_correlations).mean(axis=1)
+        print(
+            f"Mean absolute correlation error: "
+            f"{errors.mean():.6f} ± {errors.std(ddof=1):.6f}"
+        )
 
 
 if __name__ == "__main__":
