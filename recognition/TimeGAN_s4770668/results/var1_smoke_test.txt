@@ -1,0 +1,21 @@
+Training transitions: 176,253
+Design matrix rank: 41/41
+Residual shape: (176253, 40)
+Spectral radius: 0.97969726
+Validation VAR MSE:         0.192083
+Validation persistence MSE: 0.288920
+
+Generated shape: (32, 100, 40)
+Crossed books: 5.30%
+Locked books: 0.00%
+Ask ordering violations: 93.72%
+Bid ordering violations: 90.53%
+Negative-volume books: 3.03%
+
+Violation severity — raw continuous outputs
+Minimum spread: $-0.07035084
+Minimum ask-level gap: $-0.24824279
+Minimum bid-level gap: $-0.33782636
+Minimum volume: -0.99422263
+Ask books with an inversion greater than $0.01: 83.84%
+Bid books with an inversion greater than $0.01: 82.70%
