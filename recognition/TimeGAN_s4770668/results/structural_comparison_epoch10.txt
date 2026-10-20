@@ -1,0 +1,28 @@
+Next-transition price and volume alignment checks passed.
+Fixed training-based anchors; five generation seeds.
+Seed 42 | VAR(1): Crossed books=5.28%, Locked books=0.00%, Ask ordering violations=93.97%, Bid ordering violations=90.38%, Negative-volume books=3.06%
+Seed 42 | TimeGAN: Crossed books=0.44%, Locked books=0.00%, Ask ordering violations=74.16%, Bid ordering violations=60.59%, Negative-volume books=0.00%
+Seed 43 | VAR(1): Crossed books=4.03%, Locked books=0.00%, Ask ordering violations=93.84%, Bid ordering violations=92.31%, Negative-volume books=2.72%
+Seed 43 | TimeGAN: Crossed books=3.84%, Locked books=0.00%, Ask ordering violations=80.12%, Bid ordering violations=60.16%, Negative-volume books=0.00%
+Seed 44 | VAR(1): Crossed books=6.88%, Locked books=0.00%, Ask ordering violations=92.06%, Bid ordering violations=92.50%, Negative-volume books=3.31%
+Seed 44 | TimeGAN: Crossed books=0.88%, Locked books=0.00%, Ask ordering violations=70.28%, Bid ordering violations=66.22%, Negative-volume books=0.00%
+Seed 45 | VAR(1): Crossed books=6.75%, Locked books=0.00%, Ask ordering violations=94.47%, Bid ordering violations=90.72%, Negative-volume books=2.84%
+Seed 45 | TimeGAN: Crossed books=1.03%, Locked books=0.00%, Ask ordering violations=78.66%, Bid ordering violations=54.19%, Negative-volume books=0.00%
+Seed 46 | VAR(1): Crossed books=5.91%, Locked books=0.00%, Ask ordering violations=94.97%, Bid ordering violations=91.56%, Negative-volume books=2.41%
+Seed 46 | TimeGAN: Crossed books=1.12%, Locked books=0.00%, Ask ordering violations=79.00%, Bid ordering violations=58.94%, Negative-volume books=0.00%
+
+Summary: mean ± sample SD across generation seeds
+
+VAR(1): 16,000 generated snapshots
+Crossed books: 5.77% ± 1.17 pp
+Locked books: 0.00% ± 0.00 pp
+Ask ordering violations: 93.86% ± 1.10 pp
+Bid ordering violations: 91.49% ± 0.94 pp
+Negative-volume books: 2.87% ± 0.34 pp
+
+TimeGAN: 16,000 generated snapshots
+Crossed books: 1.46% ± 1.36 pp
+Locked books: 0.00% ± 0.00 pp
+Ask ordering violations: 76.44% ± 4.13 pp
+Bid ordering violations: 60.02% ± 4.30 pp
+Negative-volume books: 0.00% ± 0.00 pp
