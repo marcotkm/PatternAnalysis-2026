@@ -1,0 +1,18 @@
+Checkpoint epoch: 10
+Generated shape: (32, 100, 40)
+Audited generated snapshots: 3200
+Crossed books: 0.44%
+Locked books: 0.00%
+Ask ordering violations: 74.97%
+Bid ordering violations: 60.59%
+Negative-volume books: 0.00%
+Ask inversions greater than $0.01: 53.22%
+Bid inversions greater than $0.01: 34.59%
+Minimum spread: $-0.01781424
+Minimum ask-level gap: $-0.10673092
+Minimum bid-level gap: $-0.12976745
+Minimum volume: 1.88314653
+
+Cross-sequence variability
+Price returns: real=0.603970 | synthetic=0.513079 | ratio=0.850
+Log volumes: real=0.956819 | synthetic=0.881335 | ratio=0.921
