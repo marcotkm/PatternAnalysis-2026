@@ -76,7 +76,11 @@ def main():
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--run-name", default="joint_cpu_01")
     parser.add_argument("--d-lr", type=float, default=1e-3)
+    parser.add_argument("--d-threshold", type=float, default=0.0)
     args = parser.parse_args()
+
+    if not 0 <= args.d_threshold < float("inf"):
+        raise ValueError("Discriminator threshold must be finite and non-negative.")
 
     if not 0 < args.d_lr < float("inf"):
         raise ValueError("Discriminator learning rate must be positive and finite.")
@@ -229,7 +233,11 @@ def main():
                         refined_logits, torch.zeros_like(refined_logits)
                     )
                 )
-                update(d_loss, optimisers["d"], parameter_groups["d"])
+                if not torch.isfinite(d_loss):
+                    raise RuntimeError("Non-finite discriminator loss.")
+
+                if d_loss.item() > args.d_threshold:
+                    update(d_loss, optimisers["d"], parameter_groups["d"])
 
                 # 2. Generator and supervisor update.
                 activate(models, {"generator", "supervisor"})
@@ -340,6 +348,7 @@ def main():
                         "reconstruction_weight": 10.0,
                         "embedding_temporal_weight": 0.1,
                         "noise_distribution": "standard_normal",
+                        "discriminator_update_threshold": args.d_threshold,
                     },
                     "metrics": {**averages, "validation_mse": val_mse},
                     "fixed_noise": fixed_noise.cpu(),
