@@ -76,11 +76,6 @@ def main():
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--run-name", default="joint_cpu_01")
     parser.add_argument("--d-lr", type=float, default=1e-3)
-    parser.add_argument(
-        "--split",
-        choices=["validation", "test"],
-        default="validation",
-    )
     args = parser.parse_args()
 
     if not 0 < args.d_lr < float("inf"):
