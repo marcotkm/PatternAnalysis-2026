@@ -1,0 +1,46 @@
+Tue Oct 27 17:36:38 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          Off |   00000000:0B:00.0 Off |                    0 |
+| N/A   28C    P0             32W /  250W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+CUDA available: True
+GPU: NVIDIA A100-PCIE-40GB
+GPU tensor check: 6.0
+Device: cuda
+Learning rates: {'d': 0.001, 'gs': 0.001, 'er': 0.001}
+Training batches per epoch: 55
+Initial validation reconstruction MSE: 0.385115
+Epoch 1: D=1.7918 | G=91.9367 | moment=0.8189 | val reconstruction=0.382759 | elapsed=1.7s
+Epoch 2: D=1.3804 | G=64.2248 | moment=0.5229 | val reconstruction=0.380501 | elapsed=2.8s
+Epoch 3: D=1.1196 | G=60.7712 | moment=0.4761 | val reconstruction=0.372112 | elapsed=3.8s
+Epoch 4: D=0.7333 | G=60.4118 | moment=0.4590 | val reconstruction=0.365119 | elapsed=4.9s
+Epoch 5: D=0.3579 | G=60.1540 | moment=0.4499 | val reconstruction=0.361138 | elapsed=5.9s
+Epoch 6: D=0.2076 | G=60.7809 | moment=0.4467 | val reconstruction=0.359871 | elapsed=7.0s
+Epoch 7: D=0.1482 | G=61.9976 | moment=0.4455 | val reconstruction=0.358671 | elapsed=8.0s
+Epoch 8: D=0.1308 | G=62.7125 | moment=0.4448 | val reconstruction=0.357555 | elapsed=9.1s
+Epoch 9: D=0.1440 | G=63.0977 | moment=0.4443 | val reconstruction=0.356916 | elapsed=10.2s
+Epoch 10: D=0.1642 | G=62.8413 | moment=0.4433 | val reconstruction=0.357455 | elapsed=11.3s
+Joint-stage wall time (training, validation, monitoring and checkpoint saves): 11.314s
+GPU: NVIDIA A100-PCIE-40GB
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+Peak allocated GPU memory: 58.68 MiB
+Peak reserved GPU memory: 66.00 MiB
+Saved history and epoch checkpoints in: checkpoints/joint_gpu_resource_704633
