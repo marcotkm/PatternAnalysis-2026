@@ -1,0 +1,45 @@
+{
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "architecture": "arm64",
+  "python": "3.11.15",
+  "numpy": "2.4.6",
+  "torch": "2.14.1",
+  "device": "cpu",
+  "torch_cpu_threads": 2,
+  "checkpoint": "checkpoints/joint_cpu_02/joint_epoch_010.pt",
+  "timegan_parameters_by_component": {
+    "embedder": 8952,
+    "recovery": 8200,
+    "generator": 7800,
+    "supervisor": 4200,
+    "discriminator": 7225
+  },
+  "timegan_total_parameters": 36377,
+  "timegan_generation_parameters": 20200,
+  "var_regression_coefficients": 1640,
+  "var_residual_bank_shape": [
+    176253,
+    40
+  ],
+  "var_residual_bank_bytes": 56400960,
+  "VAR_generation": {
+    "repeats": 30,
+    "batch_size": 32,
+    "transitions_per_sequence": 100,
+    "median_batch_seconds": 0.00172452098922804,
+    "p95_batch_seconds": 0.00200724373862613,
+    "sequences_per_second": 18555.877371097926,
+    "transitions_per_second": 1855587.7371097927
+  },
+  "TimeGAN_generation": {
+    "repeats": 30,
+    "batch_size": 32,
+    "transitions_per_sequence": 100,
+    "median_batch_seconds": 0.013010811991989613,
+    "p95_batch_seconds": 0.01331654566602083,
+    "sequences_per_second": 2459.4929217101508,
+    "transitions_per_second": 245949.29217101508
+  },
+  "combined_process_peak_rss_MiB": 732.40625,
+  "measurement_scope": "Batch generation of standardised features, including random sampling. Excludes loading, fitting, price reconstruction and evaluation. Peak RSS covers the whole process and both models; it is not per-model memory or GPU VRAM."
+}

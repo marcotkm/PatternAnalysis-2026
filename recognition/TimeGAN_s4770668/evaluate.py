@@ -19,12 +19,16 @@ from skimage.metrics import structural_similarity
 
 def generate_var_transitions(
     intercept, transition, residuals, initial_states,
-    length=100, seed=42,
+    length=100, seed=42, residuals_centered=False,
 ):
     """Return new transitions only; do not include copied initial states."""
     rng = np.random.default_rng(seed)
     state = initial_states.copy()
-    centred_residuals = residuals - residuals.mean(axis=0)
+    centred_residuals = (
+        residuals
+        if residuals_centered
+        else residuals - residuals.mean(axis=0)
+    )
 
     generated = np.empty(
         (len(state), length, state.shape[1]), dtype=np.float64
