@@ -21,12 +21,17 @@ from modules import (
 
 
 def activate(models, train_names):
-    """Clear stale gradients and enable only the intended parameters."""
+    """Freeze inactive weights while allowing gradients through their GRUs."""
     for name, model in models.items():
         enabled = name in train_names
         model.zero_grad(set_to_none=True)
         model.requires_grad_(enabled)
         model.train(enabled)
+
+        # Frozen GRUs may still need backward propagation to their inputs.
+        for layer in model.modules():
+            if isinstance(layer, nn.GRU):
+                layer.train()
 
 
 def update(loss, optimiser, parameters):
@@ -70,8 +75,16 @@ def main():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     parser.add_argument("--run-name", default="joint_cpu_01")
+    parser.add_argument("--d-lr", type=float, default=1e-3)
+    parser.add_argument(
+        "--split",
+        choices=["validation", "test"],
+        default="validation",
+    )
     args = parser.parse_args()
 
+    if not 0 < args.d_lr < float("inf"):
+        raise ValueError("Discriminator learning rate must be positive and finite.")
     if args.epochs < 1 or args.batch_size < 2:
         raise ValueError("Use positive epochs and a batch size of at least 2.")
     if Path(args.run_name).name != args.run_name:
@@ -149,8 +162,13 @@ def main():
         "gs": list(G.parameters()) + list(S.parameters()),
         "er": list(E.parameters()) + list(R.parameters()),
     }
+    learning_rates = {
+        "d": args.d_lr,
+        "gs": 1e-3,
+        "er": 1e-3,
+    }
     optimisers = {
-        name: torch.optim.Adam(parameters, lr=1e-3)
+        name: torch.optim.Adam(parameters, lr=learning_rates[name])
         for name, parameters in parameter_groups.items()
     }
     criterion = nn.BCEWithLogitsLoss()
@@ -165,6 +183,7 @@ def main():
     run_dir.mkdir(parents=True, exist_ok=False)
 
     print(f"Device: {device}")
+    print(f"Learning rates: {learning_rates}")
     print(f"Training batches per epoch: {len(train_loader)}")
     print(
         "Initial validation reconstruction MSE: "
@@ -319,7 +338,7 @@ def main():
                         "generator_num_layers": layers,
                         "discriminator_num_layers": layers,
                         "joint_batch_size": args.batch_size,
-                        "joint_learning_rate": 1e-3,
+                        "joint_learning_rates": learning_rates.copy(),
                         "joint_update_ratio": "D:GS:ER = 1:1:1",
                         "temporal_weight": 100.0,
                         "moment_weight": 100.0,
@@ -351,10 +370,28 @@ def main():
             )
 
     if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+    total_seconds = time.perf_counter() - started
+    print(
+        "Joint-stage wall time "
+        "(training, validation, monitoring and checkpoint saves): "
+        f"{total_seconds:.3f}s"
+    )
+
+    if device.type == "cuda":
+        print(f"GPU: {torch.cuda.get_device_name(device)}")
+        print(f"PyTorch: {torch.__version__}")
+        print(f"CUDA runtime: {torch.version.cuda}")
         print(
             "Peak allocated GPU memory: "
-            f"{torch.cuda.max_memory_allocated(device) / 2**30:.3f} GiB"
+            f"{torch.cuda.max_memory_allocated(device) / 2**20:.2f} MiB"
         )
+        print(
+            "Peak reserved GPU memory: "
+            f"{torch.cuda.max_memory_reserved(device) / 2**20:.2f} MiB"
+        )
+
     print(f"Saved history and epoch checkpoints in: {run_dir}")
 
 
