@@ -1,0 +1,35 @@
+Device: cpu
+Learning rates: {'d': 0.0002, 'gs': 0.001, 'er': 0.001}
+Training batches per epoch: 55
+Initial validation reconstruction MSE: 0.385112
+Epoch 1: D=1.9115 | G=92.2480 | moment=0.8258 | val reconstruction=0.383236 | elapsed=9.9s
+Epoch 2: D=1.8728 | G=61.7411 | moment=0.5182 | val reconstruction=0.380240 | elapsed=19.6s
+Epoch 3: D=1.7154 | G=57.5867 | moment=0.4778 | val reconstruction=0.371638 | elapsed=29.8s
+Epoch 4: D=1.4673 | G=56.2303 | moment=0.4549 | val reconstruction=0.365314 | elapsed=39.5s
+Epoch 5: D=1.4690 | G=55.4532 | moment=0.4461 | val reconstruction=0.362872 | elapsed=49.2s
+Epoch 6: D=1.4192 | G=55.6279 | moment=0.4452 | val reconstruction=0.360763 | elapsed=58.9s
+Epoch 7: D=1.3914 | G=55.5409 | moment=0.4420 | val reconstruction=0.359133 | elapsed=68.6s
+Epoch 8: D=1.3580 | G=55.9405 | moment=0.4437 | val reconstruction=0.358835 | elapsed=78.3s
+Epoch 9: D=1.2887 | G=56.0054 | moment=0.4425 | val reconstruction=0.357280 | elapsed=88.0s
+Epoch 10: D=1.2583 | G=56.5060 | moment=0.4447 | val reconstruction=0.356642 | elapsed=97.7s
+Epoch 11: D=1.1995 | G=56.8163 | moment=0.4459 | val reconstruction=0.356142 | elapsed=107.3s
+Epoch 12: D=1.1755 | G=56.4209 | moment=0.4434 | val reconstruction=0.355632 | elapsed=117.1s
+Epoch 13: D=1.2038 | G=55.9229 | moment=0.4405 | val reconstruction=0.354892 | elapsed=126.7s
+Epoch 14: D=1.5700 | G=54.8615 | moment=0.4412 | val reconstruction=0.354377 | elapsed=136.5s
+Epoch 15: D=1.8066 | G=54.0045 | moment=0.4426 | val reconstruction=0.354722 | elapsed=146.3s
+Epoch 16: D=1.5947 | G=54.2466 | moment=0.4418 | val reconstruction=0.354527 | elapsed=155.9s
+Epoch 17: D=1.7423 | G=54.1109 | moment=0.4426 | val reconstruction=0.354213 | elapsed=165.6s
+Epoch 18: D=1.6813 | G=53.4410 | moment=0.4381 | val reconstruction=0.354391 | elapsed=175.4s
+Epoch 19: D=1.7402 | G=53.8414 | moment=0.4431 | val reconstruction=0.353249 | elapsed=185.1s
+Epoch 20: D=1.8457 | G=53.2827 | moment=0.4417 | val reconstruction=0.352661 | elapsed=194.7s
+Epoch 21: D=1.7447 | G=53.4847 | moment=0.4404 | val reconstruction=0.353517 | elapsed=204.4s
+Epoch 22: D=1.6708 | G=53.2966 | moment=0.4387 | val reconstruction=0.353043 | elapsed=214.1s
+Epoch 23: D=1.7683 | G=53.0108 | moment=0.4387 | val reconstruction=0.352607 | elapsed=224.0s
+Epoch 24: D=1.6979 | G=52.8861 | moment=0.4371 | val reconstruction=0.351450 | elapsed=233.8s
+Epoch 25: D=1.8478 | G=52.5394 | moment=0.4381 | val reconstruction=0.351728 | elapsed=243.5s
+Epoch 26: D=1.7530 | G=53.3674 | moment=0.4445 | val reconstruction=0.350801 | elapsed=253.2s
+Epoch 27: D=1.7151 | G=53.5977 | moment=0.4412 | val reconstruction=0.350808 | elapsed=262.8s
+Epoch 28: D=1.8506 | G=53.0444 | moment=0.4419 | val reconstruction=0.350208 | elapsed=272.5s
+Epoch 29: D=1.7747 | G=52.4914 | moment=0.4390 | val reconstruction=0.348675 | elapsed=282.2s
+Epoch 30: D=1.7847 | G=52.4532 | moment=0.4394 | val reconstruction=0.348213 | elapsed=291.8s
+Saved history and epoch checkpoints in: checkpoints/joint_cpu_dlr0002_e30

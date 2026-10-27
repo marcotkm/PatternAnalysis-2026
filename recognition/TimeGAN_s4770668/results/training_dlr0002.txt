@@ -1,0 +1,15 @@
+Device: cpu
+Learning rates: {'d': 0.0002, 'gs': 0.001, 'er': 0.001}
+Training batches per epoch: 55
+Initial validation reconstruction MSE: 0.385112
+Epoch 1: D=1.9115 | G=92.2480 | moment=0.8258 | val reconstruction=0.383236 | elapsed=12.3s
+Epoch 2: D=1.8728 | G=61.7411 | moment=0.5182 | val reconstruction=0.380240 | elapsed=22.9s
+Epoch 3: D=1.7154 | G=57.5867 | moment=0.4778 | val reconstruction=0.371638 | elapsed=33.5s
+Epoch 4: D=1.4673 | G=56.2303 | moment=0.4549 | val reconstruction=0.365314 | elapsed=43.5s
+Epoch 5: D=1.4690 | G=55.4532 | moment=0.4461 | val reconstruction=0.362872 | elapsed=54.1s
+Epoch 6: D=1.4192 | G=55.6279 | moment=0.4452 | val reconstruction=0.360763 | elapsed=63.8s
+Epoch 7: D=1.3914 | G=55.5409 | moment=0.4420 | val reconstruction=0.359133 | elapsed=73.3s
+Epoch 8: D=1.3580 | G=55.9405 | moment=0.4437 | val reconstruction=0.358835 | elapsed=83.0s
+Epoch 9: D=1.2887 | G=56.0054 | moment=0.4425 | val reconstruction=0.357280 | elapsed=92.5s
+Epoch 10: D=1.2583 | G=56.5060 | moment=0.4447 | val reconstruction=0.356642 | elapsed=102.1s
+Saved history and epoch checkpoints in: checkpoints/joint_cpu_dlr0002
