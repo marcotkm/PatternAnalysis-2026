@@ -13,7 +13,9 @@ Investigate whether TimeGAN generates realistic AMZN Level 10 limit order book s
 - TimeGAN trained locally on CPU using reconstruction pretraining, supervisor pretraining and 10 epochs of joint training.
 - Preliminary validation comparisons completed across five generation seeds, including structural violations, histogram KL divergence and absolute-return lag correlations.
 - Three predefined visual case studies produced.
-- Depth-heatmap SSIM, complete resource profiling, model refinement and final held-out test evaluation remain outstanding.
+- Depth-heatmap SSIM and two controlled training experiments completed.
+- Original 10-epoch TimeGAN checkpoint selected using validation evidence.
+- Resource profiling, final held-out test evaluation and final report preparation remain outstanding.
 
 All current comparative results are development results. The test period has not yet been used for final evaluation.
 
@@ -65,6 +67,14 @@ Failure categories can overlap. The minimum spread was −$0.07035, and the mini
 
 **Preliminary interpretation:** Improved one-step prediction does not ensure structurally valid generated order books. The observed inversions are larger than floating-point noise. These findings describe this smoke test, not a final held-out benchmark or a comparison with TimeGAN.
 
+## Model Selection
+
+Three TimeGAN configurations were compared on validation data: the original 10-epoch run, a 10-epoch run with a reduced discriminator learning rate, and a 30-epoch run with that reduced rate.
+
+The original 10-epoch checkpoint (`checkpoints/joint_cpu_02/joint_epoch_010.pt`) was selected, prioritising its lowest observed crossed-book rate. This involves a trade-off: the reduced-rate 10-epoch model had fewer bid-ordering violations and slightly better KL scores. Extending that configuration to 30 epochs substantially increased structural violations despite improving reconstruction loss.
+
+The selection rule was adopted after inspecting validation results, not preregistered. The held-out test period was not used for selection. All configurations retain substantial limitations; selecting one does not establish suitability for backtesting.
+
 ## Current Usage
 Run from this project directory with the Python environment activated:
 
@@ -81,10 +91,14 @@ The data directory must contain the paired AMZN message and order book CSV files
 Development environment: Python 3.11.15 and NumPy 2.4.6.
 
 ## Next Steps
-- Implement and verify TimeGAN components.
-- Measure training runtime and peak GPU memory during an A100 pilot.
-- Compare both models using distributional, structural and temporal diagnostics.
-- Analyse 3–5 representative simulation periods and formulate a recommendation about backtesting suitability.
+- Evaluate the selected model and VAR baseline against the held-out test period.
+- Complete resource profiling and reproduction instructions.
+- Add comparative results, training curves and three visual failure analyses.
+- Incorporate the feasibility review directly into this README.
+- Complete the engineering recommendation, references and submission PDF.
 
 ## Artificial Intelligence Usage Disclosure
-ChatGPT assisted with planning, documentation drafts and code suggestions for data auditing, preprocessing and the VAR(1) baseline. I executed the scripts and checked their reported outputs, including reconstruction checks, chronological split boundaries and generation diagnostics. Further verification and model evaluation remain ongoing.
+
+ChatGPT assisted with planning, documentation drafts and code suggestions for data auditing, preprocessing, the VAR(1) baseline, TimeGAN components and training, evaluation metrics, and visualisation.
+
+I executed the scripts and inspected their outputs, including chronological split checks, price and volume reconstruction, gradient and parameter-update isolation, validation losses, generated-book diagnostics and comparison figures. Experimental claims are based on the recorded outputs. Final held-out evaluation and resource profiling remain pending.
