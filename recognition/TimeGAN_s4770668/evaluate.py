@@ -276,6 +276,11 @@ def main():
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--bins", type=int, default=50)
+    parser.add_argument(
+        "--split",
+        choices=["validation", "test"],
+        default="validation",
+    )
     args = parser.parse_args()
     if args.bins < 2:
         raise ValueError("Use at least two interior histogram bins.")
@@ -283,7 +288,15 @@ def main():
     messages, books = load_lobster(args.data_dir)
     splits = chronological_split(messages, books)
     train_books = splits["train"][1]
-    validation_books = splits["validation"][1]
+    reference_books = splits[args.split][1]
+
+    reference_messages = splits[args.split][0]
+    print(
+        f"Selected reference: {args.split} | "
+        f"rows={len(reference_books):,} | "
+        f"time={reference_messages[0, 0]:.9f}"
+        f" to {reference_messages[-1, 0]:.9f}"
+    )
 
     _, features = build_features(train_books)
     mean, scale = fit_standardiser(features)
@@ -334,7 +347,7 @@ def main():
     print("Fixed training-based anchors; five generation seeds.")
 
     training_reference = real_window_observations(train_books)
-    validation_reference = real_window_observations(validation_books)
+    reference_data = real_window_observations(reference_books)
 
     histogram_edges = {
         name: training_bins(
@@ -345,21 +358,21 @@ def main():
     kl_collected = {"VAR(1)": [], "TimeGAN": []}
 
     print(
-        f"KL reference: validation; bins: {args.bins} training-range bins "
+        f"KL reference: {args.split}; bins: {args.bins} training-range bins "
         "+ 2 tail bins; probability smoothing: 1e-6."
     )
     print(
-        "Validation reference transitions:",
-        len(validation_reference["spread"]),
+        f"{args.split.capitalize()} reference transitions:",
+        len(reference_data["spread"]),
     )
 
     lags = (1, 5, 10, 20)
     real_correlations = absolute_return_correlations(
-        validation_reference["mid_return_sequences"], lags
+        reference_data["mid_return_sequences"], lags
     )
     temporal_collected = {"VAR(1)": [], "TimeGAN": []}
 
-    print("\nReal validation absolute-return correlations:")
+    print(f"\nReal {args.split} absolute-return correlations:")
     for lag, correlation in zip(lags, real_correlations):
         print(f"  Event lag {lag}: {correlation:.6f}")
     
@@ -369,7 +382,7 @@ def main():
     if depth_log_scale <= 0:
         raise ValueError("Training depth scale must be positive.")
 
-    real_depth = volume_windows(validation_books)
+    real_depth = volume_windows(reference_books)
     real_images, real_clip_percent = depth_images(
         real_depth, depth_log_scale
     )
@@ -381,7 +394,10 @@ def main():
     }
     depth_clip_collected = {"VAR(1)": [], "TimeGAN": []}
 
-    print(f"Validation depth values clipped for SSIM: {real_clip_percent:.4f}%")
+    print(
+        f"{args.split.capitalize()} depth values clipped for SSIM: "
+        f"{real_clip_percent:.4f}%"
+    )
 
     for seed in seeds:
         pair_rng = np.random.default_rng(1000 + seed)
@@ -434,12 +450,12 @@ def main():
             )
 
             if seed == seeds[0]:
-                real_returns = validation_reference["mid_return"]
+                real_returns = reference_data["mid_return"]
                 fake_returns = synthetic_observations["mid_return"]
 
                 print(f"\nReturn diagnostics — {model_name}, seed {seed}")
                 for label, values in [
-                    ("Real validation", real_returns),
+                    (f"Real {args.split}", real_returns),
                     ("Synthetic", fake_returns),
                 ]:
                     quantiles = np.quantile(
@@ -463,7 +479,7 @@ def main():
 
             kl_values = [
                 histogram_kl(
-                    validation_reference[name],
+                    reference_data[name],
                     synthetic_observations[name],
                     histogram_edges[name],
                 )
@@ -512,7 +528,10 @@ def main():
         for label, mean_rate, std_rate in zip(labels, means, stds):
             print(f"{label}: {mean_rate:.2f}% ± {std_rate:.2f} pp")
 
-    print("\nKL(real validation || synthetic): mean ± seed SD, in nats")
+    print(
+        f"\nKL(real {args.split} || synthetic): "
+        "mean ± seed SD, in nats"
+    )
     for model_name, rows in kl_collected.items():
         values = np.asarray(rows)
         means = values.mean(axis=0)
