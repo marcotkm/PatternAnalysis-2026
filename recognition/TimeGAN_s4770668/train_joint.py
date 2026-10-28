@@ -18,6 +18,7 @@ from dataset import (
 from modules import (
     Embedder, Recovery, Generator, Supervisor, Discriminator,
 )
+from constraints import reconstruct_generated_prices, price_constraint_loss
 
 
 def activate(models, train_names):
@@ -78,8 +79,11 @@ def main():
     parser.add_argument("--d-lr", type=float, default=1e-3)
     parser.add_argument("--d-threshold", type=float, default=0.0)
     parser.add_argument("--d-update-every", type=int, default=1)
+    parser.add_argument("--constraint-weight", type=float, default=0.0)
     args = parser.parse_args()
 
+    if not 0 <= args.constraint_weight < float("inf"):
+        raise ValueError("Constraint weight must be finite and non-negative.")
     if args.d_update_every < 1:
         raise ValueError("Discriminator update interval must be positive.")
     if not 0 <= args.d_threshold < float("inf"):
@@ -133,19 +137,29 @@ def main():
     splits = chronological_split(messages, books)
     mean = source["mean"].numpy()
     scale = source["scale"].numpy()
+    constraint_mean = source["mean"].to(
+        device=device, dtype=torch.float64
+    )
+    constraint_scale = source["scale"].to(
+        device=device, dtype=torch.float64
+    )
 
     tensors = {}
+    anchor_tensors = {}
     for name in ("train", "validation"):
         split_books = splits[name][1]
         _, features = build_features(split_books)
-        windows, _ = make_windows(
+        windows, anchors = make_windows(
             (features - mean) / scale, split_books, length=length
         )
         tensors[name] = torch.tensor(windows, dtype=torch.float32)
+        anchor_tensors[name] = torch.tensor(
+            anchors, dtype=torch.float64
+        )
 
     shuffle_rng = torch.Generator().manual_seed(42)
     train_loader = DataLoader(
-        TensorDataset(tensors["train"]),
+        TensorDataset(tensors["train"], anchor_tensors["train"]),
         batch_size=args.batch_size,
         shuffle=True,
         generator=shuffle_rng,
@@ -195,6 +209,8 @@ def main():
     fields = [
         "d_loss", "g_adversarial", "g_temporal_mse",
         "g_moment", "g_total", "reconstruction_mse", "er_total",
+        "constraint_total", "constraint_spread",
+        "constraint_ask", "constraint_bid",
     ]
 
     if device.type == "cuda":
@@ -215,8 +231,9 @@ def main():
             observations = 0
             d_updates = 0
 
-            for (batch,) in train_loader:
+            for batch, anchors in train_loader:
                 batch = batch.to(device)
+                anchors = anchors.to(device)
                 count = batch.shape[0]
                 global_batch += 1
 
@@ -283,10 +300,28 @@ def main():
                     (batch.mean(dim=0) - synthetic.mean(dim=0)).abs().mean()
                     + (real_std - fake_std).abs().mean()
                 )
+                constraint_loss = synthetic.new_zeros(())
+                constraint_terms = {
+                    "spread": synthetic.new_zeros(()),
+                    "ask_ladder": synthetic.new_zeros(()),
+                    "bid_ladder": synthetic.new_zeros(()),
+                }
+
+                if args.constraint_weight > 0:
+                    generated_prices = reconstruct_generated_prices(
+                        synthetic,
+                        anchors,
+                        constraint_mean,
+                        constraint_scale,
+                    )
+                    constraint_loss, constraint_terms = (
+                        price_constraint_loss(generated_prices)
+                    )
                 g_loss = (
                     adversarial
                     + 100.0 * torch.sqrt(temporal + 1e-8)
                     + 100.0 * moment
+                    + args.constraint_weight * constraint_loss
                 )
                 update(g_loss, optimisers["gs"], parameter_groups["gs"])
 
@@ -306,6 +341,10 @@ def main():
                 values = [
                     d_loss, adversarial, temporal, moment,
                     g_loss, reconstruction, er_loss,
+                    constraint_loss,
+                    constraint_terms["spread"],
+                    constraint_terms["ask_ladder"],
+                    constraint_terms["bid_ladder"],
                 ]
                 for name, value in zip(fields, values):
                     totals[name] += value.item() * count
@@ -365,6 +404,9 @@ def main():
                         "embedding_temporal_weight": 0.1,
                         "noise_distribution": "standard_normal",
                         "discriminator_update_threshold": args.d_threshold,
+                        "constraint_weight": args.constraint_weight,
+                        "constraint_minimum_gap_dollars": 0.01,
+                        "constraint_anchor_source": "paired training windows",
                     },
                     "metrics": {
                         **averages,
@@ -392,6 +434,7 @@ def main():
                 f"moment={averages['g_moment']:.4f} | "
                 f"val reconstruction={val_mse:.6f} | "
                 f"elapsed={elapsed:.1f}s",
+                f"constraint={averages['constraint_total']:.4f} | ",
                 flush=True,
             )
 
