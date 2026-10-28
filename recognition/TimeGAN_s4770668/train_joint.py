@@ -77,8 +77,11 @@ def main():
     parser.add_argument("--run-name", default="joint_cpu_01")
     parser.add_argument("--d-lr", type=float, default=1e-3)
     parser.add_argument("--d-threshold", type=float, default=0.0)
+    parser.add_argument("--d-update-every", type=int, default=1)
     args = parser.parse_args()
 
+    if args.d_update_every < 1:
+        raise ValueError("Discriminator update interval must be positive.")
     if not 0 <= args.d_threshold < float("inf"):
         raise ValueError("Discriminator threshold must be finite and non-negative.")
 
@@ -205,13 +208,17 @@ def main():
             ["epoch"] + fields + ["validation_mse", "elapsed_seconds"]
         )
 
+        global_batch = 0
+        
         for epoch in range(1, args.epochs + 1):
             totals = dict.fromkeys(fields, 0.0)
             observations = 0
+            d_updates = 0
 
             for (batch,) in train_loader:
                 batch = batch.to(device)
                 count = batch.shape[0]
+                global_batch += 1
 
                 # 1. Discriminator update.
                 activate(models, {"discriminator"})
@@ -236,8 +243,12 @@ def main():
                 if not torch.isfinite(d_loss):
                     raise RuntimeError("Non-finite discriminator loss.")
 
-                if d_loss.item() > args.d_threshold:
+                if (
+                    global_batch % args.d_update_every == 0
+                    and d_loss.item() > args.d_threshold
+                ):
                     update(d_loss, optimisers["d"], parameter_groups["d"])
+                    d_updates += 1
 
                 # 2. Generator and supervisor update.
                 activate(models, {"generator", "supervisor"})
@@ -342,7 +353,12 @@ def main():
                         "discriminator_num_layers": layers,
                         "joint_batch_size": args.batch_size,
                         "joint_learning_rates": learning_rates.copy(),
-                        "joint_update_ratio": "D:GS:ER = 1:1:1",
+                        "joint_update_ratio": (
+                            f"D:GS:ER opportunities = "
+                            f"1:{args.d_update_every}:{args.d_update_every}; "
+                            "D also gated by loss threshold"
+                        ),
+                        "discriminator_update_every": args.d_update_every,
                         "temporal_weight": 100.0,
                         "moment_weight": 100.0,
                         "reconstruction_weight": 10.0,
@@ -350,7 +366,11 @@ def main():
                         "noise_distribution": "standard_normal",
                         "discriminator_update_threshold": args.d_threshold,
                     },
-                    "metrics": {**averages, "validation_mse": val_mse},
+                    "metrics": {
+                        **averages,
+                        "validation_mse": val_mse,
+                        "discriminator_updates": d_updates,
+                    },
                     "fixed_noise": fixed_noise.cpu(),
                     "monitor_features": monitor_features.cpu(),
                     "source_checkpoint": str(args.checkpoint),
@@ -364,6 +384,8 @@ def main():
                 run_dir / f"joint_epoch_{epoch:03d}.pt",
             )
 
+            print(f"Discriminator updates this epoch: {d_updates}", flush=True)
+            
             print(
                 f"Epoch {epoch}: D={averages['d_loss']:.4f} | "
                 f"G={averages['g_total']:.4f} | "
