@@ -1,0 +1,111 @@
+Selected reference: validation | rows=34,624 | time=50584.059662468 to 54088.727719952
+Next-transition price and volume alignment checks passed.
+Fixed training-based anchors; five generation seeds.
+KL reference: validation; bins: 50 training-range bins + 2 tail bins; probability smoothing: 1e-6.
+Validation reference transitions: 34600
+
+Real validation absolute-return correlations:
+  Event lag 1: 0.096023
+  Event lag 5: 0.032203
+  Event lag 10: 0.018564
+  Event lag 20: 0.015676
+Validation depth values clipped for SSIM: 0.0000%
+
+Return diagnostics — VAR(1), seed 42
+Real validation: exact-zero=92.68% | std=2.08460214e-05
+  min / p1 / median / p99 / max: [-5.19498131e-04 -6.77162841e-05  0.00000000e+00  6.76887823e-05
+  5.19498131e-04]
+Synthetic: exact-zero=0.00% | std=3.02296476e-05
+  min / p1 / median / p99 / max: [-4.22541538e-04 -1.00945011e-04  1.85058014e-07  9.34946836e-05
+  4.51340140e-04]
+Bin containing zero: 0.0 to 5.888783379401005e-05
+Seed 42 | VAR(1) | Spread KL=0.349083 | Mid-return KL=0.529974
+Seed 42 | VAR(1): Crossed books=5.28%, Locked books=0.00%, Ask ordering violations=93.97%, Bid ordering violations=90.38%, Negative-volume books=3.06%
+
+Return diagnostics — TimeGAN, seed 42
+Real validation: exact-zero=92.68% | std=2.08460214e-05
+  min / p1 / median / p99 / max: [-5.19498131e-04 -6.77162841e-05  0.00000000e+00  6.76887823e-05
+  5.19498131e-04]
+Synthetic: exact-zero=0.00% | std=1.51410882e-05
+  min / p1 / median / p99 / max: [-5.40139729e-05 -3.74876902e-05  1.15304702e-06  3.37607129e-05
+  5.12764205e-05]
+Bin containing zero: 0.0 to 5.888783379401005e-05
+Seed 42 | TimeGAN | Spread KL=0.765507 | Mid-return KL=0.659396
+Seed 42 | TimeGAN: Crossed books=14.66%, Locked books=0.00%, Ask ordering violations=84.84%, Bid ordering violations=77.59%, Negative-volume books=0.00%
+Seed 43 | VAR(1) | Spread KL=0.373003 | Mid-return KL=0.558196
+Seed 43 | VAR(1): Crossed books=4.03%, Locked books=0.00%, Ask ordering violations=93.84%, Bid ordering violations=92.31%, Negative-volume books=2.72%
+Seed 43 | TimeGAN | Spread KL=0.793822 | Mid-return KL=0.671916
+Seed 43 | TimeGAN: Crossed books=7.94%, Locked books=0.00%, Ask ordering violations=86.59%, Bid ordering violations=81.91%, Negative-volume books=0.00%
+Seed 44 | VAR(1) | Spread KL=0.518150 | Mid-return KL=0.517561
+Seed 44 | VAR(1): Crossed books=6.88%, Locked books=0.00%, Ask ordering violations=92.06%, Bid ordering violations=92.50%, Negative-volume books=3.31%
+Seed 44 | TimeGAN | Spread KL=0.640260 | Mid-return KL=0.621342
+Seed 44 | TimeGAN: Crossed books=12.16%, Locked books=0.00%, Ask ordering violations=83.16%, Bid ordering violations=81.78%, Negative-volume books=0.00%
+Seed 45 | VAR(1) | Spread KL=0.389600 | Mid-return KL=0.539036
+Seed 45 | VAR(1): Crossed books=6.75%, Locked books=0.00%, Ask ordering violations=94.47%, Bid ordering violations=90.72%, Negative-volume books=2.84%
+Seed 45 | TimeGAN | Spread KL=0.554624 | Mid-return KL=0.623931
+Seed 45 | TimeGAN: Crossed books=10.22%, Locked books=0.00%, Ask ordering violations=87.16%, Bid ordering violations=76.75%, Negative-volume books=0.00%
+Seed 46 | VAR(1) | Spread KL=0.298050 | Mid-return KL=0.543592
+Seed 46 | VAR(1): Crossed books=5.91%, Locked books=0.00%, Ask ordering violations=94.97%, Bid ordering violations=91.56%, Negative-volume books=2.41%
+Seed 46 | TimeGAN | Spread KL=0.798231 | Mid-return KL=0.680180
+Seed 46 | TimeGAN: Crossed books=11.78%, Locked books=0.00%, Ask ordering violations=87.09%, Bid ordering violations=82.09%, Negative-volume books=0.00%
+
+Summary: mean ± sample SD across generation seeds
+
+VAR(1): 16,000 generated snapshots
+Crossed books: 5.77% ± 1.17 pp
+Locked books: 0.00% ± 0.00 pp
+Ask ordering violations: 93.86% ± 1.10 pp
+Bid ordering violations: 91.49% ± 0.94 pp
+Negative-volume books: 2.87% ± 0.34 pp
+
+TimeGAN: 16,000 generated snapshots
+Crossed books: 11.35% ± 2.48 pp
+Locked books: 0.00% ± 0.00 pp
+Ask ordering violations: 85.77% ± 1.74 pp
+Bid ordering violations: 80.03% ± 2.62 pp
+Negative-volume books: 0.00% ± 0.00 pp
+
+KL(real validation || synthetic): mean ± seed SD, in nats
+
+VAR(1)
+Spread KL: 0.385577 ± 0.081766
+Mid-return KL: 0.537672 ± 0.015181
+
+TimeGAN
+Spread KL: 0.710489 ± 0.108278
+Mid-return KL: 0.651353 ± 0.027254
+
+Absolute-return lag correlations: mean ± generation-seed SD
+
+VAR(1)
+Lag 1: real=0.096023 | synthetic=0.202860 ± 0.007964
+Lag 5: real=0.032203 | synthetic=0.012092 ± 0.018793
+Lag 10: real=0.018564 | synthetic=-0.002993 ± 0.012738
+Lag 20: real=0.015676 | synthetic=-0.003420 ± 0.023792
+Mean absolute correlation error: 0.044046 ± 0.010317
+
+TimeGAN
+Lag 1: real=0.096023 | synthetic=0.488653 ± 0.008962
+Lag 5: real=0.032203 | synthetic=0.137552 ± 0.023621
+Lag 10: real=0.018564 | synthetic=0.122836 ± 0.014671
+Lag 20: real=0.015676 | synthetic=0.070854 ± 0.045926
+Mean absolute correlation error: 0.164357 ± 0.014290
+
+Depth SSIM: mean ± SD across seed/pairing repetitions
+
+Real versus real
+Ask SSIM: 0.104619 ± 0.025479
+Bid SSIM: 0.125472 ± 0.016393
+Mean of sides: 0.115046 ± 0.011051
+
+VAR(1)
+Ask SSIM: 0.112731 ± 0.026211
+Bid SSIM: 0.119180 ± 0.035227
+Mean of sides: 0.115956 ± 0.017516
+Mean depth values clipped for SSIM: 0.1575%
+
+TimeGAN
+Ask SSIM: 0.121874 ± 0.014639
+Bid SSIM: 0.137695 ± 0.019349
+Mean of sides: 0.129784 ± 0.010219
+Mean depth values clipped for SSIM: 0.0000%

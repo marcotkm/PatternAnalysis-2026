@@ -1,372 +1,358 @@
 # TimeGAN for AMZN Limit Order Book Simulation
 
-## Project
-COMP3710 — Section 2.7: Time-Series Generation (Hard difficulty).
+**COMP3710 — Project 2.7: Time-Series Generation (Hard difficulty)**  
+**Student:** s4770668
 
-## Objective
-Investigate whether TimeGAN generates realistic AMZN Level 10 limit order book sequences, preserving market structure and temporal behaviour compared with a VAR(1) baseline. Evaluate whether the generated data could support trading-strategy backtesting, and identify its limitations.
+## Executive Summary
 
-## Status
-- Feasibility check-off completed; VAR(1) baseline approved.
-- Data auditing, chronological splitting and reversible preprocessing completed.
-- VAR(1) baseline and TimeGAN training pipeline implemented and checked.
-- Structural validity, distributional fidelity, temporal dependence and depth
-  SSIM evaluated across five generation seeds.
-- Three predefined visual case studies produced.
-- The original CPU-trained 10-epoch TimeGAN checkpoint was selected using
-  validation evidence and subsequently evaluated against the test period.
-- CPU generation throughput and A100 joint-training runtime and memory measured.
-- Additional GPU experiments investigate training duration, discriminator
-  update thresholds and update frequency.
-- Final experiment comparison, report consolidation and reproducibility
-  checks are in progress.
+This project investigates whether TimeGAN can generate AMZN Level 10 limit order book sequences suitable for investigating trading strategies. It compares TimeGAN with a VAR(1) generator and examines the trade-off between distributional realism and market microstructure validity.
 
-The original model selection preceded test evaluation. Additional GPU tuning was undertaken after inspecting those test results, using validation data for subsequent comparisons. These later experiments are exploratory; the test period cannot be described as untouched throughout development.
+The original TimeGAN model reduced crossed books and price-ladder violations relative to VAR(1), but neither model met the specified KL divergence or depth-SSIM targets. Additional GPU experiments showed that lower reconstruction error did not consistently improve generated-book quality. A differentiable structural penalty improved several validity measures, but increasing its weight further worsened temporal realism.
 
-## Feasibility Review
-The approved plan is available in [feasibility-review.md](feasibility-review.md). Its contents will be incorporated into this README for final submission.
+**Recommendation:** these raw generators are research prototypes, not reliable backtesting environments. Positive spreads alone do not establish full-book validity, and visually plausible depth does not establish realistic return dynamics.
+
+## User Need and Engineering Question
+
+The intended user is a quantitative researcher seeking synthetic order book data for investigating execution and trading strategies. The project connects my Finance and Computer Science studies. It evaluates generated market data; it does not implement an execution engine, trading strategy or profitability study.
+
+The engineering question is whether TimeGAN's supervised temporal and adversarial objectives learn positive spreads, ordered price ladders and realistic temporal behaviour without explicit enforcement. An exploratory extension tests whether directly penalising structural violations improves this balance.
+
+The assessment targets are spread and mid-price-return KL divergence ≤ 0.1, depth-heatmap SSIM > 0.6, structural and temporal diagnostics, 3–5 visual case studies, and reporting of computational resources. Targets are assessed rather than assumed to follow from successful training.
+
+## Experimental Status and Chronology
+
+The feasibility check-off is complete. Preprocessing, model training, quantitative evaluation, visual diagnostics and resource measurements have been implemented.
+
+The original CPU-trained 10-epoch checkpoint was selected using validation evidence and then evaluated against the test period. Subsequent GPU experiments were undertaken after inspecting those test results, with subsequent comparisons restricted to validation data. These extensions are exploratory: the test period cannot be described as untouched throughout development.
+
+The original checkpoint remains the main unconstrained test result. The constrained variants are reported separately on validation data; their numbers must not be substituted into the original test table.
 
 ## Dataset and Preprocessing
-- **Dataset:** LOBSTER AMZN Level 10 sample for 21 June 2012.
-- **Size:** 269,748 paired order book and message records.
-- **Source audit:** No non-finite values, missing levels, negative volumes, price-ladder ordering violations, crossed/locked books or backward timestamps were detected.
-- **Splits:** Chronological 70%/15%/15% division by trading-session duration, producing 176,255 training, 34,624 validation and 58,869 test records.
-- **Features:** 20 per-level price log returns and 20 aligned log-transformed volumes. Standardisation parameters are fitted on training data only.
-- **Windows:** Non-overlapping sequences of 100 event transitions, constructed separately within each split. Incomplete trailing windows are omitted.
-- **Verification:** Price reconstruction, volume reconstruction and window-to-price alignment checks passed.
 
-The dataset covers one trading day, limiting conclusions about generalisation across days and market conditions. Raw data remains outside the repository.
+The dataset is the [LOBSTER AMZN Level 10 sample](https://lobsterdata.com/info/DataSamples.php) for 21 June 2012. It contains 269,748 paired message and order book records, with six message columns and 40 order book columns. Each level contains ask price, ask volume, bid price and bid volume. Integer prices are divided by 10,000 to obtain dollars.
 
-## Preliminary VAR(1) Baseline
+The initial audit detected no non-finite values, missing levels, negative volumes, incorrect price ordering, crossed or locked books, backward timestamps or trading-halt events. The 8,483 adjacent repeated timestamps were retained as separate events. Spreads ranged from $0.01 to $0.77, with mean approximately $0.1309.
 
-The baseline predicts the next standardised feature vector from the current vector using a linear transformation and intercept. Generation adds sampled, centred training residual vectors at each step.
+Splits are chronological by trading-session duration, not by row count. Events with the same timestamp are kept together.
 
-### Fitting and Validation
+| Split | Session-duration allocation | Records | Complete 100-transition windows |
+|---|---:|---:|---:|
+| Training | 70% | 176,255 | 1,762 |
+| Validation | 15% | 34,624 | 346 |
+| Test | 15% | 58,869 | 588 |
 
-| Measurement | Result |
+Each feature vector contains 20 per-level price log returns followed by 20 aligned `log1p(volume)` values. The price order is ask1, bid1, …, ask10, bid10. Means and standard deviations are fitted on training data only. Feature windows do not cross split boundaries; incomplete trailing windows are omitted.
+
+Each window retains the preceding book's 20 prices as its reconstruction anchor. The first feature vector describes the transition from that anchor to the first new snapshot. Price and volume round trips and window alignment were checked. Models operate in event time; elapsed time between events is not generated.
+
+Only one trading day is available, limiting generalisation across days, assets and market regimes. Raw data is kept outside the repository.
+
+## VAR(1) Baseline
+
+The baseline predicts the next standardised feature vector using a linear transformation and intercept. Generation adds sampled, centred training residual vectors, retaining contemporaneous dependence between the 40 residual components.
+
+| Fitting measurement | Result |
 |---|---:|
-| Training transitions | 176,253 |
+| Training feature transitions | 176,253 |
 | Regression design rank | 41/41 |
 | Transition matrix spectral radius | 0.97969726 |
-| Validation one-step MSE: VAR(1) | 0.192083 |
-| Validation one-step MSE: persistence | 0.288920 |
+| Validation one-step MSE | 0.192083 |
+| Validation persistence MSE | 0.288920 |
 
-MSE is measured in standardised feature units. Persistence predicts that the next feature vector equals the current one. The spectral radius indicates stable fitted linear dynamics; it does not guarantee valid reconstructed books.
+Persistence predicts the current feature vector again. MSE is in standardised feature units. The spectral radius indicates stable fitted linear dynamics, but does not guarantee valid reconstructed books.
 
-### Generation Smoke Test
-
-Generated 32 sequences of 100 steps, initialised from training observations. The audit excluded each copied initial observation, evaluating 3,168 generated snapshots without clipping volumes or sorting prices.
-
-| Structural check | Percentage of generated snapshots |
-|---|---:|
-| Crossed books | 5.30% |
-| Locked books | 0.00% |
-| At least one ask-ordering violation | 93.72% |
-| At least one bid-ordering violation | 90.53% |
-| At least one negative volume | 3.03% |
-| At least one ask inversion greater than $0.01 | 83.84% |
-| At least one bid inversion greater than $0.01 | 82.70% |
-
-Failure categories can overlap. The minimum spread was −$0.07035, and the minimum generated volume was approximately −0.994 shares.
-
-**Preliminary interpretation:** Improved one-step prediction does not ensure structurally valid generated order books. The observed inversions are larger than floating-point noise. These findings describe this smoke test, not a final held-out benchmark or a comparison with TimeGAN.
-
-## Evaluation Protocol
-
-### Shared Generation Setup
-
-Each model generates 32 sequences of 100 new event transitions for each
-of five generation seeds (42–46), giving 16,000 generated snapshots per
-model. Initial price anchors are fixed observations selected from the
-training period and shared between models.
-
-VAR(1) generation conditions on a training feature state. TimeGAN generates
-features from random noise and uses the shared price anchors only during
-price reconstruction. This difference limits the equivalence of their
-conditioning.
-
-Generated sequences are compared against chronological validation or test
-reference windows. They are independent simulations, not forecasts paired
-with the observed future of a particular reference window.
-
-Reported mean ± sample standard deviation describes variation across
-generation seeds for a fixed trained checkpoint. It does not measure
-variation across independently trained models or constitute a confidence
-interval. Snapshots within a generated sequence are temporally dependent.
-
-### Structural Validity
-
-Audits use reconstructed outputs without sorting price levels, clipping
-volumes or repairing spreads. Each snapshot is checked for:
-
-- Crossed books: best bid exceeds best ask.
-- Locked books: best bid equals best ask.
-- Ask-ladder violations: adjacent ask prices are not strictly increasing.
-- Bid-ladder violations: adjacent bid prices are not strictly decreasing.
-- Negative volume at any of the 20 depth positions.
-
-Violation categories can overlap. Additional diagnostics measure minimum
-spread, minimum adjacent price gaps and inversions exceeding $0.01.
-
-### Distributional Fidelity
-
-Spread and mid-price log-return distributions are compared using
-KL(real reference || synthetic), expressed in nats.
-
-The primary histogram protocol uses 50 equal-width bins spanning the
-training-data range, plus two tail bins. Histogram probabilities receive
-additive smoothing of 1e-6 and are renormalised. Bin boundaries are shared
-between real and synthetic data and are not fitted to the test period.
-
-Sensitivity checks with 25 and 100 interior bins show that KL values
-depend materially on binning. In particular, real event-time returns have
-a large mass at exactly zero, whereas the continuous generators do not
-reproduce that mass. The 50-bin protocol is retained consistently rather
-than choosing the most favourable bin count.
-
-### Temporal Dependence
-
-Volatility clustering is assessed using correlations of absolute
-mid-price log returns at event lags 1, 5, 10 and 20. Lagged pairs are
-constructed within sequences, without joining independent windows.
-
-The mean absolute difference between real and synthetic correlations
-summarises mismatch across these four lags. These are event-time
-diagnostics, not correlations at fixed elapsed-time intervals.
-
-### Depth-Heatmap SSIM
-
-Depth is represented separately for asks and bids as 10-level × 100-step
-arrays. Volumes are log-transformed and scaled using a training-derived
-maximum. Copies used for SSIM are clipped to [0, 1], with the clipped
-fraction reported separately. Structural audits retain the raw outputs.
-
-SSIM uses a 7 × 7 window and data_range=1. Real and synthetic windows are
-paired independently using a reproducible pairing procedure shared
-between models. A separate real-versus-real comparison provides context.
-
-The reported mean averages the ask and bid scores. Standard deviations
-are calculated across generation-seed/pairing repetitions.
-
-Because these are independent sequences, SSIM is sensitive to pairing
-and temporal alignment. The low real-versus-real score demonstrates that
-the absolute target of 0.6 is difficult to interpret under this protocol.
-It does not establish that a synthetic model meets the target.
-
-### Qualitative Diagnostics
-
-Three predefined validation cases compare real and independently generated
-sequences using depth heatmaps, mid-price returns, spreads and minimum
-adjacent price gaps. Shared scales within each figure support comparison.
-
-Depth heatmaps alone cannot establish price-ladder validity because their
-vertical axes represent level rank rather than the actual generated price.
-The accompanying price-gap diagnostics expose inversions that may be
-visually hidden in the depth plots.
-
-## Initial Model Selection and Subsequent Experiments
-
-Three TimeGAN configurations were compared on validation data: the original 10-epoch run, a 10-epoch run with a reduced discriminator learning rate, and a 30-epoch run with that reduced rate.
-
-The original 10-epoch checkpoint (`checkpoints/joint_cpu_02/joint_epoch_010.pt`) was selected, prioritising its lowest observed crossed-book rate. This involves a trade-off: the reduced-rate 10-epoch model had fewer bid-ordering violations and slightly better KL scores. Extending that configuration to 30 epochs substantially increased structural violations despite improving reconstruction loss.
-
-The selection rule was adopted after inspecting validation results, not preregistered. The held-out test period was not used for initial selection. All configurations retain substantial limitations; selecting one does not establish suitability for backtesting.
-
-After evaluating the initially selected model on the test period, further experiments were conducted on an NVIDIA A100 GPU. These examined 50 epochs of joint training and a discriminator loss threshold of 0.15. An additional experiment changes the discriminator update interval.
-
-The 50-epoch experiments improved reconstruction error without consistently improving generated-book validity or distributional fidelity. Subsequent checkpoint comparisons use validation data. The original CPU checkpoint is retained as the reference model while these exploratory experiments are assessed.
+An early smoke test evaluated 3,168 new snapshots after excluding copied starting observations. The comparative results below use the corrected shared protocol with 100 new transitions per sequence; the early smoke-test figures are not mixed into these tables.
 
 ## TimeGAN Architecture and Training
 
-The model generates sequences of 100 event transitions, each represented
-by 40 standardised features: 20 per-level price log returns and 20
-log-transformed depth volumes.
+TimeGAN combines learned latent representations, recurrent temporal supervision and adversarial generation [1, 2]. This implementation uses GRUs with hidden dimension 24 and windows of 100 transitions.
 
-### Architecture
-
-Five recurrent networks are implemented using GRUs with a hidden
-dimension of 24.
-
-| Component | Purpose | GRU layers | Output |
+| Component | Role | GRU layers | Output |
 |---|---|---:|---|
-| Embedder | Encode real feature sequences | 2 | 24-dimensional latent vector, sigmoid |
-| Recovery | Decode latent sequences into features | 2 | 40-dimensional feature vector, linear |
-| Generator | Transform Gaussian noise into latent sequences | 2 | 24-dimensional latent vector, sigmoid |
-| Supervisor | Model next-step latent dynamics | 1 | 24-dimensional latent vector, sigmoid |
-| Discriminator | Distinguish real and generated latent sequences | 2 | One logit per time step |
+| Embedder | Encode real features | 2 | 24 latent values; sigmoid |
+| Recovery | Decode latent sequences | 2 | 40 features; linear |
+| Generator | Transform Gaussian noise | 2 | 24 latent values; sigmoid |
+| Supervisor | Learn next-step latent dynamics | 1 | 24 latent values; sigmoid |
+| Discriminator | Classify real/generated latent sequences | 2 | One logit per step |
 
-The recovery output is linear because standardised features are not
-restricted to [0, 1]. Generation follows generator → supervisor → recovery.
-Noise has 24 independent standard-normal components per time step.
-
-Generated prices are reconstructed from per-level log returns using
-training-based initial price anchors. The model does not explicitly
-condition its generated returns on those anchors. No sorting of prices,
-spread repair or volume clipping is applied to the structural audit.
+Generation follows generator → supervisor → recovery. Noise has 24 standard-normal components per step. The recovery layer is linear because standardised features are unbounded. There are 36,377 parameters in total and 20,200 in the three networks used for generation.
 
 ### Training Stages
 
-1. **Reconstruction pretraining:** train the embedder and recovery network
-   for 20 epochs to reconstruct real training windows. The selected
-   checkpoint achieved validation feature MSE of 0.385112, compared with
-   0.641442 for a training-mean predictor.
-2. **Supervisor pretraining:** freeze the embedder and train the supervisor
-   for 20 epochs to predict the next latent state. The best validation
-   latent MSE was 0.002671, compared with 0.003277 for latent persistence.
-3. **Joint training:** alternate discriminator, generator/supervisor and
-   embedder/recovery updates. The initial reference model used 10 epochs;
-   subsequent experiments examined longer training and altered
-   discriminator optimisation.
+1. **Reconstruction pretraining:** embedder and recovery trained for 20 epochs. Selected validation MSE was 0.385112, versus 0.641442 for a training-mean predictor.
+2. **Supervisor pretraining:** supervisor trained for 20 epochs on frozen encoded sequences. Best validation latent MSE was 0.002671, versus 0.003277 for latent persistence.
+3. **Joint training:** alternating discriminator, generator/supervisor and embedder/recovery updates. The initial reference used 10 epochs; GPU extensions used 50.
 
-Joint training uses Adam, batch size 32 and gradient-norm clipping at 1.0.
-The original learning rate is 0.001 for each optimiser. There are 55
-training batches per epoch; the incomplete final batch is omitted.
+The original joint setup uses Adam at learning rate 0.001, batch size 32, gradient-norm clipping at 1.0 and 55 batches per epoch. The incomplete training batch is omitted. Training seed 42 is used; generation seeds are varied separately.
 
-### Joint Objectives
+### Objectives and Implementation Choices
 
-The discriminator loss sums binary cross-entropy terms for real latent
-sequences, raw generator outputs and supervisor-refined generator outputs.
+The discriminator objective sums binary cross-entropy losses on real latent sequences, raw generator outputs and supervisor-refined generator outputs.
 
-The generator/supervisor objective combines:
+The generator/supervisor objective combines adversarial losses, 100 times the square root of real next-step latent MSE, and 100 times a moment loss. The moment loss compares batch means and standard deviations at each time position and feature. Square-root terms use numerical stabilisers.
 
-- Adversarial losses for raw and refined generated latent sequences.
-- 100 times the square root of the supervised next-step latent MSE,
-  with a small numerical stabiliser.
-- 100 times a moment-matching loss comparing real and synthetic batch
-  means and standard deviations at each time position and feature.
+The supervised latent term directly trains the supervisor on real encoded sequences. The generator receives gradients through adversarial and moment objectives. The embedder/recovery objective combines 10 times the square root of feature reconstruction MSE with 0.1 times latent temporal MSE.
 
-The supervised temporal term is calculated on real encoded sequences.
-It directly trains the supervisor; generator learning comes through
-the adversarial and moment-matching paths.
+Inactive parameters are frozen during each update, while gradients can pass through those networks to active inputs. Shape, reconstruction, gradient-flow and parameter-update isolation checks were performed. Validation reconstruction measures embedder/recovery performance, not synthetic generation quality.
 
-The embedder/recovery objective combines 10 times the square root of
-feature reconstruction MSE, with a small numerical stabiliser, and
-0.1 times the supervised latent MSE.
+This is an adapted implementation, not an exact reproduction of the authors' code. Differences include standardisation with a linear recovery output, Gaussian noise and the original 1:1:1 update schedule. The reference implementation uses two generator/supervisor and embedder/recovery updates per discriminator opportunity and gates discriminator updates by loss [2]. The later every-second-batch experiment tests a related schedule rather than reproducing it exactly.
 
-Inactive networks have frozen parameters during each update, while
-gradients can still propagate through them to the active networks.
-Validation reconstruction uses only the embedder and recovery network;
-it is not a direct measure of synthetic generation quality.
+## Structural-Penalty Extension
 
-None of these objectives explicitly guarantees positive spreads,
-ordered price ladders or non-negative reconstructed volumes. Their
-preservation is therefore assessed empirically.
+The unconstrained objectives do not explicitly enforce price ordering. The extension reconstructs synthetic prices during training using paired training-window anchors:
 
-## Test Results for the Initially Selected Model
+`P[t,j] = anchor[j] × exp(sum(return[s,j], s=1…t))`.
 
-The original CPU-trained checkpoint,
-`checkpoints/joint_cpu_02/joint_epoch_010.pt`, was selected using validation
-results before this test evaluation. The table below reports that fixed
-model; it does not describe the later GPU checkpoints.
+Reconstruction uses double precision while preserving gradients. For a spread or adjacent price gap `g`, the penalty is `max(0, (0.01 − g) / 0.01)`. The structural loss sums three mean penalties: best-level spread, adjacent ask gaps and adjacent bid gaps. It is added to the generator/supervisor objective with weight λ.
 
-The test split contains 58,869 records, providing 588 complete windows
-and 58,800 reference transitions.
+Weights 0, 1 and 5 are compared under the same GPU schedule: discriminator threshold 0.15, update opportunity every second batch, and 50 epochs. Other networks update every batch. Exact discriminator counts can be lower because of the threshold.
 
-### Distributional and Temporal Results
+The generator remains unconditional: anchors enter the loss calculation, not the generator inputs. The penalty encourages one-cent minimum gaps but does not guarantee validity, enforce tick-grid prices, enforce non-negative volume or establish event-level volume conservation. No price sorting or spread repairs are applied during evaluation.
 
-| Metric | VAR(1) | TimeGAN | Target |
+Unit checks verified zero penalty for a constructed valid book, detection of crossed spreads and both ladder inversions, and finite nonzero gradients back to price features.
+
+## Evaluation Protocol
+
+### Sampling and Structural Audit
+
+For each checkpoint, 32 sequences of 100 new transitions are generated using seeds 42–46: 16,000 snapshots in total. Fixed training-based price anchors are shared between models. VAR conditions on a training feature state; TimeGAN generates features independently of the anchor. This conditioning difference limits equivalence of the comparison.
+
+Generated sequences are independent simulations, not forecasts paired with observed reference futures. Audits count crossed books (bid > ask), locked books (bid = ask), non-strict ask or bid ordering, and any negative volume. Categories overlap. Minimum spreads and adjacent price gaps provide severity diagnostics.
+
+Mean ± sample SD describes generation-seed variation for a fixed trained model, not independent retraining variation or a confidence interval. Temporally related snapshots are not independent observations.
+
+### KL and Temporal Diagnostics
+
+KL is computed as `KL(real reference || synthetic)` in nats. The primary protocol uses 50 training-range equal-width bins plus two tail bins, additive probability smoothing of 1e-6 and renormalisation. Real and synthetic distributions share the same boundaries.
+
+Checks with 25 and 100 bins showed substantial sensitivity, especially around the large mass of exactly zero real returns. The 50-bin protocol is retained consistently rather than choosing favourable bins. Return quantiles, standard deviations and zero-return fractions supplement KL.
+
+Volatility clustering is examined through absolute-return correlations at event lags 1, 5, 10 and 20, using pairs within sequences. Their mean absolute deviation from the real reference correlations summarises temporal mismatch.
+
+### Depth SSIM and Figures
+
+SSIM is calculated separately on ask and bid arrays of 10 levels × 100 transitions. Log-transformed volumes are scaled using a training-derived maximum. Only copies used for SSIM are clipped to [0,1]; the clipped fraction is reported. The metric uses a 7 × 7 window and `data_range=1` [3].
+
+Reference pairings are reproducible and shared between models. A real-versus-real comparison contextualises independent-sequence similarity. SD includes variation across generation seeds and pairings. Low real-versus-real scores expose limitations of applying the absolute 0.6 target to this protocol; they do not demonstrate target attainment.
+
+Three predefined validation periods are shown below. Shared scales within each figure assist comparison. Depth is plotted by level rank, so heatmaps alone cannot establish price ordering. Negative adjacent-gap traces expose hidden inversions.
+
+## Initial Model Selection and Test Results
+
+The original 10-epoch CPU run was compared on validation data with reduced-discriminator-learning-rate runs of 10 and 30 epochs. It was selected for its lowest observed crossed-book frequency. This criterion was adopted after inspecting validation results, not preregistered. The reduced-rate 10-epoch model had some better metrics; no configuration was uniformly best.
+
+The following results belong specifically to `checkpoints/joint_cpu_02/joint_epoch_010.pt`. This initial selection preceded test evaluation. The test period contains 588 full windows and 58,800 reference transitions.
+
+| Test-reference metric | VAR(1) | Original TimeGAN | Target |
 |---|---:|---:|---|
 | Spread KL | 0.481982 ± 0.048793 | 0.316629 ± 0.062030 | ≤ 0.1 |
-| Mid-price return KL | 0.515427 ± 0.015366 | 0.687588 ± 0.028828 | ≤ 0.1 |
+| Return KL | 0.515427 ± 0.015366 | 0.687588 ± 0.028828 | ≤ 0.1 |
 | Absolute-return correlation error | 0.077968 ± 0.012651 | 0.261913 ± 0.008778 | Lower is better |
 | Mean depth SSIM | 0.119944 ± 0.006698 | 0.126209 ± 0.009634 | > 0.6 |
 
-Real-versus-real mean depth SSIM was 0.123889 ± 0.012100.
-SSIM variability includes changes in reference pairing.
+Real-versus-real test SSIM was 0.123889 ± 0.012100. Neither model met the KL or SSIM targets.
 
-TimeGAN improved spread KL relative to VAR(1), but had worse return KL
-and temporal correlation error. Neither model met the KL or SSIM targets.
-
-### Structural Results for the Generated Samples
-
-| Violation | VAR(1) | TimeGAN |
+| Generated-book violation | VAR(1) | Original TimeGAN |
 |---|---:|---:|
 | Crossed books | 5.77% ± 1.17 pp | 1.46% ± 1.36 pp |
 | Locked books | 0.00% ± 0.00 pp | 0.00% ± 0.00 pp |
-| Ask ordering violations | 93.86% ± 1.10 pp | 76.44% ± 4.13 pp |
-| Bid ordering violations | 91.49% ± 0.94 pp | 60.02% ± 4.30 pp |
-| Negative-volume books | 2.87% ± 0.34 pp | 0.00% ± 0.00 pp |
+| Ask ordering | 93.86% ± 1.10 pp | 76.44% ± 4.13 pp |
+| Bid ordering | 91.49% ± 0.94 pp | 60.02% ± 4.30 pp |
+| Negative volume | 2.87% ± 0.34 pp | 0.00% ± 0.00 pp |
 
-These structural rates describe the same fixed generated samples used
-in the validation and test-reference comparisons. They are unchanged
-when the reference split changes and are not a separate test-conditioned
-generation experiment.
+These structural rates describe the same generated samples used for validation and test-reference comparisons. Changing the reference split does not change generated-book violations. Zero observed negative volumes is not a mathematical guarantee.
 
-TimeGAN reduced structural violations relative to VAR(1), but price
-ladders remained invalid in many snapshots. Zero observed negative-volume
-violations does not provide a mathematical guarantee of non-negativity.
+## Exploratory GPU Experiments: Validation Results
 
-### Preliminary Engineering Recommendation
+Longer training and discriminator changes reduced reconstruction error without consistently improving generation. The following table compares epoch 50; values are means across generation seeds. Full outputs retain standard deviations.
 
-The evaluated raw generators are not sufficiently reliable for
-trading-strategy backtesting. Invalid price ladders and crossed books
-could distort execution opportunities, while return-distribution and
-temporal mismatches could distort simulated risk.
+| Configuration | Crossed % ↓ | Ask violations % ↓ | Bid violations % ↓ | Spread KL ↓ | Return KL ↓ | Temporal error ↓ | SSIM ↑ |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Original GPU schedule | 11.35 | 85.77 | 80.03 | 0.710489 | 0.651353 | 0.164357 | 0.129784 |
+| Threshold 0.15 | 9.46 | 61.92 | 76.84 | 0.863348 | 0.661373 | 0.125353 | 0.146724 |
+| Threshold + every-second-batch D; λ=0 | 3.48 | 79.91 | 77.22 | 0.618527 | 0.702704 | **0.087433** | 0.123295 |
+| Same schedule; λ=1 | 1.71 | 68.59 | 55.54 | **0.176459** | **0.584617** | 0.113813 | **0.152710** |
+| Same schedule; λ=5 | 1.71 | **33.60** | **46.24** | 0.208454 | 0.744115 | 0.292400 | 0.144826 |
 
-The results support using this implementation as an experimental
-prototype for studying failure modes. Further work would need to address
-structural validity and validate behaviour across additional trading days.
+Epochs 10, 20, 30 and 50 were inspected for each GPU run. None met both KL targets or the SSIM target. In the λ=5 run, epoch 20 produced zero observed crossed books, but still had 34.81% ask and 38.79% bid violations, spread KL 0.698239 and return KL 0.719313.
+
+At epoch 50, λ=1 improved ordering and distribution fidelity relative to its matching λ=0 control, but temporal error increased. Increasing λ to 5 further improved ordering while worsening return KL and temporal error. Absolute-return lag-1 correlation was 0.906 for λ=5, 0.460 for λ=1 and 0.096 in real validation data.
+
+The λ=1 epoch-50 checkpoint is the leading balanced constrained candidate for this exploratory analysis, not a universal winner or a new independently confirmed test result. It is stored in `checkpoints/joint_gpu_constraint_709048/joint_epoch_050.pt`. One training seed per configuration limits claims about robustness. Generation-seed replication does not remove that limitation.
+
+## Visual Error Analysis
+
+The three main figures use λ=1 at epoch 50, seed 42, and predefined real windows 0, 173 and 345. Generated samples are independent of the displayed real sequences, so mismatched jump timing alone is not evidence of failure.
+
+### Case 1: Positive Spread with a Late Ask Inversion
+
+![Case 1: weight-1 TimeGAN, real reference and VAR](results/figures_constraint_w1_epoch50/case_01.png)
+
+The TimeGAN spread remains positive, but its minimum ask gap falls to approximately −$0.05 near the end. Its returns fluctuate more continuously than the real sequence, which contains many zero returns and occasional jumps. VAR also develops substantial ladder inversions.
+
+### Case 2: Deeper-Level Failure Hidden by a Positive Spread
+
+![Case 2: weight-1 TimeGAN, real reference and VAR](results/figures_constraint_w1_epoch50/case_02.png)
+
+The minimum TimeGAN ask gap reaches approximately −$0.07 while the spread remains positive. Depth surfaces appear plausible at a glance, but the price-gap trace reveals an invalid ladder. The bid gap stays nearer zero and also exhibits brief violations.
+
+### Case 3: Inversions on Both Sides
+
+![Case 3: weight-1 TimeGAN, real reference and VAR](results/figures_constraint_w1_epoch50/case_03.png)
+
+Both generated ladders become inverted; the ask gap ends near −$0.055. VAR crosses the best bid and ask near the end, marked by a negative spread. TimeGAN avoids that particular failure in this sample but does not preserve the deeper book structure.
+
+### Stronger-Penalty Comparison
+
+![Case 1: weight-5 TimeGAN](results/figures_constraint_w5_epoch50/case_01.png)
+
+![Case 3: weight-5 TimeGAN](results/figures_constraint_w5_epoch50/case_03.png)
+
+Weight 5 keeps the minimum gaps closer to zero in these examples, but residual inversions remain. Case 3 ask gaps reach roughly −$0.02. Returns and depth changes are smoother than with weight 1, consistent with the excessive measured short-lag persistence. The additional case-2 comparison is saved in `results/figures_constraint_w5_epoch50/` and shows the same qualitative trade-off. Values read from figures are approximate; aggregate metrics support the broader conclusions.
 
 ## Computational Resources
 
-The model contains 36,377 trainable parameters across five components. Generation uses the generator, supervisor and recovery networks, containing 20,200 parameters in total.
+### CPU Generation
 
-### CPU Generation Benchmark
-
-Measurements were taken on an Apple M1 MacBook Pro with 8 GB unified memory, Python 3.11.15, NumPy 2.4.6 and PyTorch 2.14.1. PyTorch used two CPU threads. Each timed batch generated 32 sequences of 100 transitions. Three warm-up runs preceded 30 measured repetitions.
+Benchmark hardware was an Apple M1 MacBook Pro with 8 GB unified memory, Python 3.11.15, NumPy 2.4.6 and PyTorch 2.14.1. PyTorch used two CPU threads. Three warm-ups preceded 30 measured batches, each generating 32 sequences of 100 transitions.
 
 | Measurement | VAR(1) | TimeGAN |
 |---|---:|---:|
-| Median batch generation time | 1.725 ms | 13.011 ms |
+| Median batch time | 1.725 ms | 13.011 ms |
 | 95th-percentile batch time | 2.007 ms | 13.317 ms |
-| Sequences per second | 18,556 | 2,459 |
+| Sequences/second | 18,556 | 2,459 |
 
-Timing includes random sampling and standardised feature generation. It excludes loading, fitting, residual-bank centring, price reconstruction and evaluation. VAR uses NumPy float64; TimeGAN uses PyTorch float32.
+Timing includes random sampling and standardised feature generation; it excludes loading, fitting, residual centring, price reconstruction and evaluation. VAR uses float64 and TimeGAN float32. These measurements use the original CPU checkpoint, not the later constrained variants.
 
-Combined process peak resident memory was 732.4 MiB. This includes both models and supporting data and is not a per-model measurement or GPU VRAM.
+Combined peak process RSS was 732.4 MiB, including both models and supporting data. This is neither per-model memory nor GPU VRAM. VAR stores 1,640 regression coefficients and a 176,253 × 40 residual bank occupying 56,400,960 bytes.
 
-### GPU Joint Training
+### A100 Joint Training
 
-Rangpur experiments used an NVIDIA A100 PCIe 40 GB, PyTorch 2.13.0 and
-CUDA runtime 13.0.
+Rangpur used an NVIDIA A100 PCIe 40 GB, PyTorch 2.13.0 and CUDA runtime 13.0. Earlier reconstruction and supervisor pretraining were performed on CPU.
 
-| Run | Epochs | Joint-stage wall time | Peak allocated memory | Peak reserved memory |
+| Joint-training run | Epochs | Wall time (s) | Peak allocated (MiB) | Peak reserved (MiB) |
 |---|---:|---:|---:|---:|
-| Original update schedule | 10 | 11.314 s | 58.68 MiB | 66.00 MiB |
-| Original update schedule | 50 | 57.704 s | 58.68 MiB | 66.00 MiB |
-| Discriminator threshold 0.15 | 50 | 55.047 s | 87.81 MiB | 100.00 MiB |
-| Threshold 0.15; discriminator update every second batch | 50 | 53.110 s | 88.98 MiB | 100.00 MiB |
+| Original schedule | 10 | 11.314 | 58.68 | 66.00 |
+| Original schedule | 50 | 57.704 | 58.68 | 66.00 |
+| Threshold 0.15 | 50 | 55.047 | 87.81 | 100.00 |
+| Threshold + every-second-batch D | 50 | 53.110 | 88.98 | 100.00 |
+| Same schedule; λ=1 | 50 | 55.285 | 89.47 | 100.00 |
+| Same schedule; λ=5 | 50 | 53.851 | 74.50 | 84.00 |
 
-Wall time includes joint training, validation, fixed-noise monitoring and checkpoint saving. It excludes data preparation and the reconstruction and supervisor pretraining previously performed on CPU. Memory figures come from PyTorch's CUDA allocator and do not represent total device usage.
+Joint-stage timing includes training, validation, fixed-noise monitoring and checkpoint saves. It excludes preparation, pretraining and queue time. GPU memory is measured with PyTorch's allocator statistics, not total device usage. Differences in hardware, software and timing scope prevent a strict CPU/GPU speedup claim. CUDA runs produce separate weights from the CPU reference.
 
-GPU experiments produce separate checkpoints from the original CPU model. Their resource measurements must not be presented as measurements of training that CPU checkpoint.
+## Reproduction
 
-## Current Usage
-Run from this project directory with the Python environment activated:
+Run commands from this project directory. Raw CSV data and checkpoints are excluded from Git. Supply the two AMZN message/order book CSV files in a directory outside the repository. PyTorch must be installed separately for the intended CPU/CUDA environment; the current `requirements.txt` pins NumPy, Matplotlib and scikit-image only. Versions used are documented above.
 
 ```bash
 python -m pip install -r requirements.txt
+python -c "import torch; print(torch.__version__)"
 
-python dataset.py --data-dir /path/to/extracted/AMZN_data
+# Replace this path with the extracted CSV directory.
+DATA_DIR=/path/to/extracted/AMZN_data
 
-python baseline.py --data-dir /path/to/extracted/AMZN_data
+python dataset.py --data-dir "$DATA_DIR"
+python baseline.py --data-dir "$DATA_DIR"
+python check_constraints.py
+
+# Recreate CPU pretraining in new run directories.
+python train.py --data-dir "$DATA_DIR" --epochs 20 \
+  --device cpu --run-name reconstruction_reproduce
+
+python train_supervisor.py --data-dir "$DATA_DIR" --epochs 20 \
+  --checkpoint checkpoints/reconstruction_reproduce/reconstruction_best.pt \
+  --run-name supervisor_reproduce
+
+# Recreate the original joint-training configuration.
+python train_joint.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/supervisor_reproduce/supervisor_best.pt \
+  --epochs 10 --device cpu --d-lr 0.001 \
+  --d-threshold 0 --d-update-every 1 --constraint-weight 0 \
+  --run-name joint_original_reproduce
+
+python evaluate.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/joint_original_reproduce/joint_epoch_010.pt \
+  --split validation --bins 50
+
+# On an allocated GPU compute node, recreate the constrained configuration.
+python train_joint.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/supervisor_reproduce/supervisor_best.pt \
+  --epochs 50 --device cuda --d-lr 0.001 \
+  --d-threshold 0.15 --d-update-every 2 --constraint-weight 1 \
+  --run-name joint_constraint_reproduce
+
+python evaluate.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/joint_constraint_reproduce/joint_epoch_050.pt \
+  --split validation --bins 50
+
+python visualise.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/joint_constraint_reproduce/joint_epoch_050.pt \
+  --output-dir results/figures_constraint_reproduce
 ```
 
-The data directory must contain the paired AMZN message and order book CSV files. The current baseline script uses fixed random seeds for its generation smoke test.
+The λ=0 and λ=5 controls use the same constrained-run command with the corresponding weight and a distinct run name. Run directories must not already exist. Jobs on Rangpur are submitted through Slurm using the course partition/account; do not train on the login node. For the initially selected archived checkpoint, the completed test evaluation uses `evaluate.py --split test --bins 50`.
 
-Development environment: Python 3.11.15 and NumPy 2.4.6.
+Retraining can differ across platforms and package versions. The commands above describe the intended workflow; a clean-environment reproduction check remains to be completed before submission.
 
-## Next Steps
-- Complete the validation comparison of the GPU update-frequency experiment.
-- Consolidate validation and test results into clearly separated tables.
-- Add the model architecture, training objectives and evaluation protocol.
-- Include training curves and three visual failure analyses.
-- Incorporate the approved feasibility review directly into this README.
-- Complete reproduction instructions and verify them.
-- Finalise the engineering recommendation, references and submission PDF.
+## Limitations and Engineering Recommendation
+
+The experiments do not establish reliable backtesting data. Remaining ladder inversions, crossed books, missing zero-return mass and excessive temporal persistence can distort simulated execution and risk. No actual strategy profitability or execution performance was assessed.
+
+Scope is limited to a single day, short event-time windows, a fixed set of initial training anchors, and one training seed per configuration. Unconditional TimeGAN and state-conditioned VAR have different conditioning. KL is sensitive to histogram construction, while independent-window SSIM is limited by pairing. Neither the structural penalty nor the volume audit establishes event-level volume conservation, queue dynamics or a complete market simulator.
+
+The constrained study provides evidence of a trade-off: explicit structural pressure can reduce ordering failures, but stronger pressure need not improve return realism. Weight 1 at epoch 50 is a useful exploratory compromise; all evaluated models remain below the required performance targets. Future work should consider anchor-conditioned or structurally valid price representations, explicit modelling of unchanged prices, independent training repeats and additional trading days. Such extensions require fresh evaluation rather than assuming validity implies realism.
+
+## References
+
+1. Yoon, J., Jarrett, D. and van der Schaar, M. (2019). [Time-series Generative Adversarial Networks](https://papers.nips.cc/paper/8789-time-series-generative-adversarial-networks). NeurIPS.
+2. Yoon, J. [TimeGAN reference implementation](https://github.com/jsyoon0823/TimeGAN), particularly the training objectives and joint-update schedule in `timegan.py`.
+3. scikit-image. [Structural similarity documentation](https://scikit-image.org/docs/0.26.x/api/skimage.metrics.html#skimage.metrics.structural_similarity).
+4. LOBSTER. [Sample data and documentation](https://lobsterdata.com/info/DataSamples.php), together with the README bundled with the AMZN sample archive.
 
 ## Artificial Intelligence Usage Disclosure
 
-ChatGPT assisted with planning, documentation drafts and code suggestions for data auditing, preprocessing, the VAR(1) baseline, TimeGAN components and training, evaluation metrics, and visualisation.
+ChatGPT assisted with planning, documentation drafts and code suggestions for data auditing, preprocessing, the VAR baseline, TimeGAN components and training, evaluation, visualisation, resource profiling and the structural-penalty extension. It also helped interpret outputs and diagnose Git and Slurm issues.
 
-I executed the scripts and inspected their outputs, including chronological split checks, price and volume reconstruction, gradient and parameter-update isolation, validation losses, generated-book diagnostics and comparison figures. Test evaluation of the initially selected model and resource profiling have been completed. Subsequent GPU experiments and final reporting remain in progress.
+I executed the experiments and inspected their outputs, including chronological split checks, reconstruction and alignment checks, gradient and parameter-update isolation checks, constraint tests, generated-book diagnostics and figures. Quantitative claims are based on recorded outputs. AI assistance does not replace my responsibility to understand, verify and explain the submitted implementation and conclusions.
+
+## Feasibility Review — Original Approved Plan
+
+The review below is retained as the original planning document. Its proposed budget and future-tense statements describe that stage, not measured final consumption or current status. Later changes, including the explicit structural penalty, are documented above.
+
+
+### Approved Review
+**Student:** s4770668 | **Project 2.7:** Time-Series Generation | **Difficulty:** Hard | **Tutor Consultation Date & Time:** 20 Oct 2026 9:30am
+
+### 1. User Need, Scope & Acceptance Criteria
+**User and purpose:** A quantitative researcher needs realistic synthetic order book sequences for investigating trading strategies. This project connects my Finance and Computer Science studies by evaluating synthetic AMZN Level 10 data; it will not implement a complete trading simulator or establish profitability.
+
+**Engineering dilemma:** Does TimeGAN’s combination of supervised temporal learning and adversarial learning preserve order book constraints and realistic temporal behaviour better than a simpler baseline generator? Based on structural violations, distribution similarity and computational cost, are the generated sequences sufficiently reliable to support trading-strategy backtesting, and what limitations remain?
+
+**Acceptance criteria:**
+- Target KL divergence ≤ 0.1 for spread and mid-price return distributions.
+- Target SSIM > 0.6 on depth heatmaps under a documented comparison protocol.
+- Audit 3–5 representative simulation periods using real-versus-synthetic depth heatmaps. Measure non-positive spreads, incorrect price-ladder ordering and negative volumes before corrective processing.
+- Compare volatility clustering, return-tail behaviour and sample diversity against real data and the baseline. Use these findings to recommend whether the generated books are suitable for backtesting and identify remaining limitations.
+- Train and generate within one A100 GPU’s available memory; measure peak VRAM, training time and generation throughput to assess computational practicality.
+
+### 2. Model Choice & Course Concepts
+- **Dataset:** LOBSTER AMZN Level 10 data from 21 June 2012. Use short event-time sequences containing prices and volumes at all 10 levels on both sides.
+- **Configuration:** Split the session chronologically into training, validation and test periods (proposed 70%/15%/15%). Construct windows within each split and fit preprocessing on training data only. Use price log returns and volume normalisation with a verified reconstruction procedure.
+- **Model:** TimeGAN (Hard difficulty), supported by Yoon, Jarrett and van der Schaar’s *Time-series Generative Adversarial Networks* (NeurIPS, 2019).
+- **Course concepts and rationale:** Representation learning reduces the adversarial learning space; recurrent networks model sequences; supervised temporal learning encourages realistic transitions. These objectives motivate TimeGAN but do not guarantee market constraints, which must be evaluated explicitly.
+- **Proposed baseline:** VAR(1) with sampled residual noise provides a simpler temporal generator for comparison.
+
+### 3. Preliminary Feasibility Evidence
+- A completed Python audit found **269,748 paired records**, with **40 order book features** and **6 message fields**, covering approximately **09:30–16:00**.
+- No non-finite values, missing levels, negative volumes, price-ordering violations, crossed/locked books, backward timestamps or trading-halt events were detected.
+- Spreads ranged from **$0.01 to $0.77**, averaging **$0.1309**. There were **8,483 adjacent timestamp repetitions**, retained as separate events.
+- These findings support proceeding with preprocessing. Training feasibility and GPU resource consumption remain unmeasured.
+
+### 4. Risks, Budget & Fallback
+- **Risks:** GAN instability or mode collapse; invalid reconstructed books; misleading heatmap comparisons; limited generalisation from one trading day.
+- **Budget:**  Approximately 27.5 GPU-hours +. Provisionally allocate 0.5 GPU-hours to a pilot, 19 to training and focused comparisons, 3 to evaluation, and 5 as contingency. Revise allocations using measured pilot throughput.
+- **Next experiment:** Validate chronological splitting and reconstruction of transformed prices, then run the baseline and a small TimeGAN pilot.
+- **Fallback:** Reduce model size, batch size, sequence length or training sample count while retaining all 10 levels. If performance remains inadequate, preserve the baseline comparison and analyse TimeGAN’s failures honestly. Discuss any architecture change with the tutor.
+
+*AI assistance: ChatGPT supported planning, drafting and the audit script; I executed the data audit on Rangpur.*

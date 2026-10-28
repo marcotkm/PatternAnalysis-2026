@@ -1,0 +1,86 @@
+Tue Oct 27 17:48:18 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          Off |   00000000:0B:00.0 Off |                    0 |
+| N/A   28C    P0             36W /  250W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+CUDA available: True
+GPU: NVIDIA A100-PCIE-40GB
+GPU tensor check: 6.0
+Device: cuda
+Learning rates: {'d': 0.001, 'gs': 0.001, 'er': 0.001}
+Training batches per epoch: 55
+Initial validation reconstruction MSE: 0.385115
+Epoch 1: D=1.7918 | G=91.9367 | moment=0.8189 | val reconstruction=0.382759 | elapsed=2.9s
+Epoch 2: D=1.3804 | G=64.2248 | moment=0.5229 | val reconstruction=0.380501 | elapsed=4.0s
+Epoch 3: D=1.1196 | G=60.7712 | moment=0.4761 | val reconstruction=0.372112 | elapsed=5.1s
+Epoch 4: D=0.7333 | G=60.4118 | moment=0.4590 | val reconstruction=0.365119 | elapsed=6.2s
+Epoch 5: D=0.3579 | G=60.1540 | moment=0.4499 | val reconstruction=0.361138 | elapsed=7.4s
+Epoch 6: D=0.2076 | G=60.7809 | moment=0.4467 | val reconstruction=0.359871 | elapsed=8.5s
+Epoch 7: D=0.1482 | G=61.9976 | moment=0.4455 | val reconstruction=0.358671 | elapsed=9.6s
+Epoch 8: D=0.1308 | G=62.7125 | moment=0.4448 | val reconstruction=0.357555 | elapsed=10.7s
+Epoch 9: D=0.1440 | G=63.0977 | moment=0.4443 | val reconstruction=0.356916 | elapsed=11.8s
+Epoch 10: D=0.1642 | G=62.8413 | moment=0.4433 | val reconstruction=0.357455 | elapsed=12.9s
+Epoch 11: D=0.2255 | G=62.2020 | moment=0.4426 | val reconstruction=0.355571 | elapsed=14.1s
+Epoch 12: D=0.4721 | G=61.3766 | moment=0.4516 | val reconstruction=0.355368 | elapsed=15.2s
+Epoch 13: D=1.2430 | G=60.3071 | moment=0.4705 | val reconstruction=0.355433 | elapsed=16.3s
+Epoch 14: D=0.6891 | G=61.9557 | moment=0.4740 | val reconstruction=0.354674 | elapsed=17.4s
+Epoch 15: D=1.0398 | G=60.0155 | moment=0.4656 | val reconstruction=0.354110 | elapsed=18.5s
+Epoch 16: D=0.6238 | G=59.9380 | moment=0.4515 | val reconstruction=0.354098 | elapsed=19.6s
+Epoch 17: D=0.5709 | G=61.0317 | moment=0.4525 | val reconstruction=0.354266 | elapsed=20.8s
+Epoch 18: D=0.8900 | G=59.9993 | moment=0.4572 | val reconstruction=0.353183 | elapsed=21.9s
+Epoch 19: D=0.9119 | G=59.8501 | moment=0.4620 | val reconstruction=0.353145 | elapsed=23.0s
+Epoch 20: D=0.9111 | G=58.4936 | moment=0.4525 | val reconstruction=0.352455 | elapsed=24.2s
+Epoch 21: D=1.0258 | G=57.9828 | moment=0.4595 | val reconstruction=0.353047 | elapsed=25.3s
+Epoch 22: D=1.2633 | G=57.0397 | moment=0.4589 | val reconstruction=0.355501 | elapsed=26.4s
+Epoch 23: D=1.3797 | G=55.9006 | moment=0.4504 | val reconstruction=0.352564 | elapsed=27.5s
+Epoch 24: D=1.2348 | G=56.5459 | moment=0.4530 | val reconstruction=0.352204 | elapsed=28.6s
+Epoch 25: D=1.2460 | G=56.0852 | moment=0.4526 | val reconstruction=0.352446 | elapsed=29.8s
+Epoch 26: D=1.4223 | G=55.8078 | moment=0.4583 | val reconstruction=0.351221 | elapsed=30.9s
+Epoch 27: D=1.4602 | G=55.9127 | moment=0.4614 | val reconstruction=0.350954 | elapsed=32.0s
+Epoch 28: D=1.4012 | G=56.3761 | moment=0.4637 | val reconstruction=0.350886 | elapsed=33.1s
+Epoch 29: D=1.3683 | G=57.2518 | moment=0.4726 | val reconstruction=0.349400 | elapsed=34.2s
+Epoch 30: D=1.4095 | G=55.8393 | moment=0.4608 | val reconstruction=0.348862 | elapsed=35.3s
+Epoch 31: D=1.4059 | G=56.6585 | moment=0.4645 | val reconstruction=0.348054 | elapsed=36.5s
+Epoch 32: D=1.3147 | G=56.6547 | moment=0.4631 | val reconstruction=0.341897 | elapsed=37.6s
+Epoch 33: D=1.4304 | G=56.4960 | moment=0.4649 | val reconstruction=0.336533 | elapsed=38.7s
+Epoch 34: D=1.3453 | G=56.8561 | moment=0.4654 | val reconstruction=0.333801 | elapsed=39.8s
+Epoch 35: D=1.5639 | G=55.3922 | moment=0.4547 | val reconstruction=0.331768 | elapsed=40.9s
+Epoch 36: D=1.4370 | G=55.3389 | moment=0.4524 | val reconstruction=0.330620 | elapsed=42.0s
+Epoch 37: D=1.2649 | G=57.2091 | moment=0.4663 | val reconstruction=0.329967 | elapsed=43.2s
+Epoch 38: D=1.5478 | G=55.6946 | moment=0.4550 | val reconstruction=0.328941 | elapsed=44.3s
+Epoch 39: D=1.4259 | G=54.5371 | moment=0.4454 | val reconstruction=0.327378 | elapsed=45.4s
+Epoch 40: D=1.3498 | G=55.7422 | moment=0.4552 | val reconstruction=0.326748 | elapsed=46.5s
+Epoch 41: D=1.4309 | G=56.3205 | moment=0.4605 | val reconstruction=0.324273 | elapsed=47.6s
+Epoch 42: D=1.2308 | G=55.7023 | moment=0.4541 | val reconstruction=0.321910 | elapsed=48.7s
+Epoch 43: D=1.2287 | G=55.7859 | moment=0.4575 | val reconstruction=0.319534 | elapsed=49.8s
+Epoch 44: D=1.2589 | G=55.4925 | moment=0.4547 | val reconstruction=0.315265 | elapsed=51.0s
+Epoch 45: D=1.1257 | G=55.0909 | moment=0.4484 | val reconstruction=0.314922 | elapsed=52.1s
+Epoch 46: D=1.1421 | G=55.6463 | moment=0.4524 | val reconstruction=0.313335 | elapsed=53.2s
+Epoch 47: D=1.0587 | G=56.4342 | moment=0.4581 | val reconstruction=0.311694 | elapsed=54.3s
+Epoch 48: D=1.1413 | G=55.7262 | moment=0.4527 | val reconstruction=0.316457 | elapsed=55.4s
+Epoch 49: D=1.0394 | G=57.0101 | moment=0.4590 | val reconstruction=0.310893 | elapsed=56.5s
+Epoch 50: D=1.0534 | G=56.5187 | moment=0.4541 | val reconstruction=0.310706 | elapsed=57.7s
+Joint-stage wall time (training, validation, monitoring and checkpoint saves): 57.704s
+GPU: NVIDIA A100-PCIE-40GB
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+Peak allocated GPU memory: 58.68 MiB
+Peak reserved GPU memory: 66.00 MiB
+Saved history and epoch checkpoints in: checkpoints/joint_gpu_e50_704662

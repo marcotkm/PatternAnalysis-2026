@@ -1,0 +1,136 @@
+Wed Oct 28 20:08:15 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-PCIE-40GB          Off |   00000000:0B:00.0 Off |                    0 |
+| N/A   28C    P0             29W /  250W |       0MiB /  40960MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+CUDA available: True
+GPU: NVIDIA A100-PCIE-40GB
+GPU tensor check: 6.0
+Device: cuda
+Learning rates: {'d': 0.001, 'gs': 0.001, 'er': 0.001}
+Training batches per epoch: 55
+Initial validation reconstruction MSE: 0.385115
+Discriminator updates this epoch: 27
+Epoch 1: D=1.8941 | G=94.7196 | moment=0.8237 | val reconstruction=0.382670 | elapsed=1.7s constraint=0.4739 | 
+Discriminator updates this epoch: 28
+Epoch 2: D=1.6551 | G=66.1282 | moment=0.5318 | val reconstruction=0.380003 | elapsed=2.8s constraint=0.5354 | 
+Discriminator updates this epoch: 27
+Epoch 3: D=1.4804 | G=61.9977 | moment=0.4832 | val reconstruction=0.371858 | elapsed=3.8s constraint=0.4995 | 
+Discriminator updates this epoch: 28
+Epoch 4: D=1.3588 | G=60.0001 | moment=0.4634 | val reconstruction=0.365511 | elapsed=4.9s constraint=0.4241 | 
+Discriminator updates this epoch: 27
+Epoch 5: D=1.5659 | G=58.5459 | moment=0.4539 | val reconstruction=0.361591 | elapsed=6.0s constraint=0.3609 | 
+Discriminator updates this epoch: 28
+Epoch 6: D=1.7043 | G=58.6596 | moment=0.4533 | val reconstruction=0.359166 | elapsed=7.0s constraint=0.3881 | 
+Discriminator updates this epoch: 27
+Epoch 7: D=1.6357 | G=57.9978 | moment=0.4538 | val reconstruction=0.358529 | elapsed=8.1s constraint=0.3956 | 
+Discriminator updates this epoch: 28
+Epoch 8: D=1.1739 | G=60.2847 | moment=0.4615 | val reconstruction=0.358041 | elapsed=9.1s constraint=0.3876 | 
+Discriminator updates this epoch: 27
+Epoch 9: D=0.8962 | G=60.8802 | moment=0.4592 | val reconstruction=0.356667 | elapsed=10.2s constraint=0.3744 | 
+Discriminator updates this epoch: 28
+Epoch 10: D=0.7516 | G=61.7021 | moment=0.4601 | val reconstruction=0.356539 | elapsed=11.2s constraint=0.3710 | 
+Discriminator updates this epoch: 27
+Epoch 11: D=0.9048 | G=61.7129 | moment=0.4616 | val reconstruction=0.355728 | elapsed=12.3s constraint=0.3713 | 
+Discriminator updates this epoch: 28
+Epoch 12: D=1.1923 | G=61.4693 | moment=0.4633 | val reconstruction=0.354956 | elapsed=13.3s constraint=0.3876 | 
+Discriminator updates this epoch: 27
+Epoch 13: D=1.2272 | G=61.2459 | moment=0.4664 | val reconstruction=0.355146 | elapsed=14.4s constraint=0.3706 | 
+Discriminator updates this epoch: 28
+Epoch 14: D=1.8411 | G=59.4615 | moment=0.4625 | val reconstruction=0.354145 | elapsed=15.4s constraint=0.3653 | 
+Discriminator updates this epoch: 27
+Epoch 15: D=1.1755 | G=59.5371 | moment=0.4597 | val reconstruction=0.354963 | elapsed=16.5s constraint=0.3536 | 
+Discriminator updates this epoch: 28
+Epoch 16: D=1.4399 | G=60.7865 | moment=0.4596 | val reconstruction=0.354040 | elapsed=17.5s constraint=0.3749 | 
+Discriminator updates this epoch: 27
+Epoch 17: D=1.4309 | G=60.1619 | moment=0.4620 | val reconstruction=0.353761 | elapsed=18.6s constraint=0.3659 | 
+Discriminator updates this epoch: 28
+Epoch 18: D=1.5475 | G=59.4892 | moment=0.4614 | val reconstruction=0.352737 | elapsed=19.7s constraint=0.3723 | 
+Discriminator updates this epoch: 27
+Epoch 19: D=1.5263 | G=59.0797 | moment=0.4575 | val reconstruction=0.352583 | elapsed=20.7s constraint=0.3906 | 
+Discriminator updates this epoch: 28
+Epoch 20: D=1.4181 | G=59.3804 | moment=0.4590 | val reconstruction=0.352398 | elapsed=21.8s constraint=0.4115 | 
+Discriminator updates this epoch: 27
+Epoch 21: D=1.1549 | G=61.4153 | moment=0.4653 | val reconstruction=0.352879 | elapsed=22.9s constraint=0.5062 | 
+Discriminator updates this epoch: 28
+Epoch 22: D=1.6957 | G=60.0538 | moment=0.4629 | val reconstruction=0.354149 | elapsed=23.9s constraint=0.5171 | 
+Discriminator updates this epoch: 27
+Epoch 23: D=1.8239 | G=57.7611 | moment=0.4544 | val reconstruction=0.352408 | elapsed=25.0s constraint=0.5446 | 
+Discriminator updates this epoch: 28
+Epoch 24: D=1.1522 | G=59.4821 | moment=0.4540 | val reconstruction=0.351485 | elapsed=26.1s constraint=0.5172 | 
+Discriminator updates this epoch: 27
+Epoch 25: D=1.8968 | G=58.4100 | moment=0.4565 | val reconstruction=0.351773 | elapsed=27.2s constraint=0.5446 | 
+Discriminator updates this epoch: 28
+Epoch 26: D=1.8506 | G=57.0645 | moment=0.4523 | val reconstruction=0.351094 | elapsed=28.2s constraint=0.5799 | 
+Discriminator updates this epoch: 27
+Epoch 27: D=1.3549 | G=57.5783 | moment=0.4505 | val reconstruction=0.351092 | elapsed=29.5s constraint=0.5047 | 
+Discriminator updates this epoch: 28
+Epoch 28: D=1.8555 | G=56.9772 | moment=0.4489 | val reconstruction=0.351216 | elapsed=30.6s constraint=0.4856 | 
+Discriminator updates this epoch: 27
+Epoch 29: D=1.4031 | G=57.6816 | moment=0.4482 | val reconstruction=0.349766 | elapsed=31.6s constraint=0.5516 | 
+Discriminator updates this epoch: 28
+Epoch 30: D=1.2251 | G=58.2542 | moment=0.4522 | val reconstruction=0.348681 | elapsed=32.7s constraint=0.4972 | 
+Discriminator updates this epoch: 27
+Epoch 31: D=1.2938 | G=58.6254 | moment=0.4550 | val reconstruction=0.346394 | elapsed=33.7s constraint=0.5223 | 
+Discriminator updates this epoch: 28
+Epoch 32: D=1.4279 | G=58.1419 | moment=0.4576 | val reconstruction=0.340817 | elapsed=34.8s constraint=0.5000 | 
+Discriminator updates this epoch: 27
+Epoch 33: D=1.5686 | G=57.8813 | moment=0.4557 | val reconstruction=0.335935 | elapsed=35.8s constraint=0.4862 | 
+Discriminator updates this epoch: 28
+Epoch 34: D=1.4612 | G=58.5914 | moment=0.4627 | val reconstruction=0.333325 | elapsed=36.9s constraint=0.4810 | 
+Discriminator updates this epoch: 27
+Epoch 35: D=1.4644 | G=57.4861 | moment=0.4565 | val reconstruction=0.331606 | elapsed=38.0s constraint=0.4142 | 
+Discriminator updates this epoch: 28
+Epoch 36: D=1.6165 | G=57.6842 | moment=0.4637 | val reconstruction=0.330159 | elapsed=39.0s constraint=0.4146 | 
+Discriminator updates this epoch: 27
+Epoch 37: D=1.8689 | G=56.4916 | moment=0.4543 | val reconstruction=0.329208 | elapsed=40.1s constraint=0.4474 | 
+Discriminator updates this epoch: 28
+Epoch 38: D=1.8535 | G=55.3462 | moment=0.4484 | val reconstruction=0.328953 | elapsed=41.1s constraint=0.3987 | 
+Discriminator updates this epoch: 27
+Epoch 39: D=1.6408 | G=56.3400 | moment=0.4541 | val reconstruction=0.326941 | elapsed=42.2s constraint=0.4181 | 
+Discriminator updates this epoch: 28
+Epoch 40: D=1.6167 | G=57.2467 | moment=0.4563 | val reconstruction=0.327513 | elapsed=43.2s constraint=0.4774 | 
+Discriminator updates this epoch: 27
+Epoch 41: D=1.4861 | G=56.9959 | moment=0.4570 | val reconstruction=0.324357 | elapsed=44.3s constraint=0.4176 | 
+Discriminator updates this epoch: 28
+Epoch 42: D=1.6299 | G=57.0853 | moment=0.4553 | val reconstruction=0.321168 | elapsed=45.3s constraint=0.4654 | 
+Discriminator updates this epoch: 27
+Epoch 43: D=1.8964 | G=56.3804 | moment=0.4487 | val reconstruction=0.320907 | elapsed=46.4s constraint=0.5533 | 
+Discriminator updates this epoch: 28
+Epoch 44: D=1.4697 | G=56.4946 | moment=0.4465 | val reconstruction=0.316018 | elapsed=47.5s constraint=0.4718 | 
+Discriminator updates this epoch: 27
+Epoch 45: D=1.6658 | G=58.4400 | moment=0.4680 | val reconstruction=0.316554 | elapsed=48.5s constraint=0.4541 | 
+Discriminator updates this epoch: 28
+Epoch 46: D=1.5908 | G=56.3740 | moment=0.4499 | val reconstruction=0.315122 | elapsed=49.6s constraint=0.4247 | 
+Discriminator updates this epoch: 27
+Epoch 47: D=1.4267 | G=55.6611 | moment=0.4468 | val reconstruction=0.312189 | elapsed=50.6s constraint=0.3987 | 
+Discriminator updates this epoch: 28
+Epoch 48: D=1.5653 | G=56.5230 | moment=0.4524 | val reconstruction=0.312389 | elapsed=51.7s constraint=0.4082 | 
+Discriminator updates this epoch: 27
+Epoch 49: D=1.6358 | G=55.1379 | moment=0.4459 | val reconstruction=0.312304 | elapsed=52.7s constraint=0.4049 | 
+Discriminator updates this epoch: 28
+Epoch 50: D=1.7086 | G=55.7520 | moment=0.4526 | val reconstruction=0.310908 | elapsed=53.8s constraint=0.4036 | 
+Joint-stage wall time (training, validation, monitoring and checkpoint saves): 53.851s
+GPU: NVIDIA A100-PCIE-40GB
+PyTorch: 2.13.0+cu130
+CUDA runtime: 13.0
+Peak allocated GPU memory: 74.50 MiB
+Peak reserved GPU memory: 84.00 MiB
+Saved history and epoch checkpoints in: checkpoints/joint_gpu_constraint_w5_709072
