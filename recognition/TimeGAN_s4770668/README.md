@@ -292,32 +292,37 @@ python baseline.py --data-dir "$DATA_DIR"
 python check_constraints.py
 
 # Recreate CPU pretraining in new run directories.
-python train.py --data-dir "$DATA_DIR" --epochs 20 \
+python train.py --stage reconstruction --data-dir "$DATA_DIR" --epochs 20 \
   --device cpu --run-name reconstruction_reproduce
 
-python train_supervisor.py --data-dir "$DATA_DIR" --epochs 20 \
+python train.py --stage supervisor --data-dir "$DATA_DIR" --epochs 20 \
   --checkpoint checkpoints/reconstruction_reproduce/reconstruction_best.pt \
   --run-name supervisor_reproduce
 
 # Recreate the original joint-training configuration.
-python train_joint.py --data-dir "$DATA_DIR" \
+python train.py --stage joint --data-dir "$DATA_DIR" \
   --checkpoint checkpoints/supervisor_reproduce/supervisor_best.pt \
   --epochs 10 --device cpu --d-lr 0.001 \
   --d-threshold 0 --d-update-every 1 --constraint-weight 0 \
   --run-name joint_original_reproduce
 
-python evaluate.py --data-dir "$DATA_DIR" \
+python train.py --stage evaluate --data-dir "$DATA_DIR" \
   --checkpoint checkpoints/joint_original_reproduce/joint_epoch_010.pt \
   --split validation --bins 50
 
+# Generate, audit and visualise samples from the reproduced model.
+python predict.py --data-dir "$DATA_DIR" \
+  --checkpoint checkpoints/joint_original_reproduce/joint_epoch_010.pt \
+  --output-dir results/prediction_reproduce
+
 # On an allocated GPU compute node, recreate the constrained configuration.
-python train_joint.py --data-dir "$DATA_DIR" \
+python train.py --stage joint --data-dir "$DATA_DIR" \
   --checkpoint checkpoints/supervisor_reproduce/supervisor_best.pt \
   --epochs 50 --device cuda --d-lr 0.001 \
   --d-threshold 0.15 --d-update-every 2 --constraint-weight 1 \
   --run-name joint_constraint_reproduce
 
-python evaluate.py --data-dir "$DATA_DIR" \
+python train.py --stage evaluate --data-dir "$DATA_DIR" \
   --checkpoint checkpoints/joint_constraint_reproduce/joint_epoch_050.pt \
   --split validation --bins 50
 
@@ -333,7 +338,7 @@ the dataset or model checkpoints:
 python plot_training.py
 ```
 
-The λ=0 and λ=5 controls use the same constrained-run command with the corresponding weight and a distinct run name. Run directories must not already exist. Jobs on Rangpur are submitted through Slurm using the course partition/account; do not train on the login node. For the initially selected archived checkpoint, the completed test evaluation uses `evaluate.py --split test --bins 50`.
+The λ=0 and λ=5 controls use the same constrained-run command with the corresponding weight and a distinct run name. Run directories must not already exist. Jobs on Rangpur are submitted through Slurm using the course partition/account; do not train on the login node. The original archived checkpoint was evaluated using python evaluate.py with --split test --bins 50 and the required dataset and checkpoint paths. The equivalent evaluation is now available through python train.py --stage evaluate.
 
 Retraining can differ across platforms and package versions. The commands above describe the intended workflow; a clean-environment reproduction check remains to be completed before submission.
 

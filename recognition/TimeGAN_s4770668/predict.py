@@ -3,6 +3,10 @@
 import argparse
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 import numpy as np
 import torch
 
@@ -19,6 +23,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("results/prediction"),
+    )
     args = parser.parse_args()
 
     torch.set_num_threads(2)
@@ -143,6 +152,66 @@ def main():
             f"{label}: real={real_std:.6f} | "
             f"synthetic={fake_std:.6f} | ratio={ratio:.3f}"
         )
+
+    # Visualise the first sequence from the samples audited above.
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    steps = np.arange(1, prices.shape[1] + 1)
+
+    ask_depth = volumes[0, :, 0::2].T
+    bid_depth = volumes[0, :, 1::2].T
+
+    # Signed log preserves visibility of invalid negative volumes.
+    ask_display = np.sign(ask_depth) * np.log1p(np.abs(ask_depth))
+    bid_display = np.sign(bid_depth) * np.log1p(np.abs(bid_depth))
+    limit = max(
+        float(np.abs(ask_display).max()),
+        float(np.abs(bid_display).max()),
+        1e-8,
+    )
+
+    fig, axes = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
+    for ax, depth, title in [
+        (axes[0], ask_display, "Generated ask depth"),
+        (axes[1], bid_display, "Generated bid depth"),
+    ]:
+        plot = ax.imshow(
+            depth,
+            origin="lower",
+            aspect="auto",
+            interpolation="nearest",
+            extent=(0.5, len(steps) + 0.5, 0.5, 10.5),
+            cmap="coolwarm",
+            vmin=-limit,
+            vmax=limit,
+        )
+        ax.set(title=title, ylabel="Level")
+        fig.colorbar(
+            plot, ax=ax, label="sign(volume) × log(1 + |volume|)"
+        )
+
+    axes[2].plot(steps, spreads[0])
+    axes[2].axhline(0, color="black", linestyle="--")
+    axes[2].set(title="Best-level spread", ylabel="Dollars")
+
+    axes[3].plot(steps, ask_gaps[0].min(axis=1), label="Ask")
+    axes[3].plot(steps, bid_gaps[0].min(axis=1), label="Bid")
+    axes[3].axhline(0, color="black", linestyle="--")
+    axes[3].set(
+        title="Minimum adjacent price gaps",
+        xlabel="Generated event transition",
+        ylabel="Dollars",
+    )
+    axes[3].legend()
+
+    fig.suptitle(
+        f"TimeGAN epoch {checkpoint['epoch']} — sample 0, seed 42\n"
+        "Raw generated books without repairs"
+    )
+    fig.tight_layout()
+    destination = args.output_dir / "generated_sample.png"
+    fig.savefig(destination, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved prediction figure: {destination}")
 
 
 if __name__ == "__main__":

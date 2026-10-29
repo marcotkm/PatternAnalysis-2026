@@ -10,6 +10,9 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+import subprocess
+import sys
+
 from dataset import (
     load_lobster,
     chronological_split,
@@ -203,5 +206,33 @@ def main():
     print(f"Saved checkpoint and history in: {run_dir}")
 
 
+def entrypoint():
+    """Dispatch training stages and evaluation to existing implementations."""
+    stage_parser = argparse.ArgumentParser(add_help=False)
+    stage_parser.add_argument(
+        "--stage",
+        choices=["reconstruction", "supervisor", "joint", "evaluate"],
+        default="reconstruction",
+    )
+    stage_args, remaining = stage_parser.parse_known_args()
+
+    if stage_args.stage == "reconstruction":
+        # Preserve the original reconstruction CLI and implementation.
+        sys.argv = [sys.argv[0], *remaining]
+        main()
+        return
+
+    scripts = {
+        "supervisor": "train_supervisor.py",
+        "joint": "train_joint.py",
+        "evaluate": "evaluate.py",
+    }
+    script = Path(__file__).resolve().parent / scripts[stage_args.stage]
+    subprocess.run(
+        [sys.executable, str(script), *remaining],
+        check=True,
+    )
+
+
 if __name__ == "__main__":
-    main()
+    entrypoint()
