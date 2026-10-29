@@ -1,4 +1,10 @@
-"""Differentiable price reconstruction and order-book penalties."""
+"""Differentiable price reconstruction and order-book penalties.
+
+Project-specific extension to the TimeGAN objectives, using penalties on
+best-level spread and adjacent ask/bid price gaps. These penalties are not
+part of the original TimeGAN method.
+
+See README.md for the mathematical definition, limitations and AI usage."""
 
 import torch
 

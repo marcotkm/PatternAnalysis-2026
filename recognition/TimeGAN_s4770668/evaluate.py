@@ -1,4 +1,12 @@
-"""Shared evaluation under development: VAR generation alignment."""
+"""Compare VAR(1) and TimeGAN using a shared evaluation protocol.
+
+Includes structural audits, histogram KL divergence, absolute-return
+correlations and depth SSIM.
+
+SSIM uses skimage.metrics.structural_similarity:
+https://scikit-image.org/docs/0.26.x/api/skimage.metrics.html#skimage.metrics.structural_similarity
+
+See README.md for metric definitions, pairing limitations and AI usage."""
 
 import argparse
 from pathlib import Path

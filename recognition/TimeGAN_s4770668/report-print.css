@@ -1,0 +1,47 @@
+/* Keep headings with the following content. */
+h1, h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+}
+
+/* Keep tables and images intact. */
+table, tr, img {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+p {
+    orphans: 3;
+    widows: 3;
+}
+
+/* Start the original feasibility review on a fresh page. */
+h2[id^="feasibility-review"] {
+    break-before: page;
+    page-break-before: always;
+}
+
+/* Compact only the final feasibility-review section. */
+h2[id^="feasibility-review"] ~ p,
+h2[id^="feasibility-review"] ~ ul {
+    font-size: 9pt;
+    line-height: 1.1;
+    margin-top: 2pt;
+    margin-bottom: 2pt;
+}
+
+h2[id^="feasibility-review"] ~ h3 {
+    font-size: 10pt;
+    margin-top: 5pt;
+    margin-bottom: 3pt;
+}
+
+h2[id^="feasibility-review"] ~ ul li {
+    margin-top: 0;
+    margin-bottom: 1pt;
+}

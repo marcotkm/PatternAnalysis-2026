@@ -1,4 +1,16 @@
-"""Joint TimeGAN training with logging and fixed-noise monitoring."""
+"""Joint TimeGAN training with logging and fixed-noise monitoring.
+
+Sources:
+    Yoon, Jarrett and van der Schaar (2019),
+    "Time-series Generative Adversarial Networks", NeurIPS.
+    https://papers.nips.cc/paper/8789-time-series-generative-adversarial-networks
+
+    Authors' reference implementation:
+    https://github.com/jsyoon0823/TimeGAN/blob/master/timegan.py
+
+The architecture and/or training objectives are adapted for this project's
+PyTorch implementation. This is not an exact reproduction of the reference
+implementation. See README.md for implementation differences and AI usage."""
 
 import argparse
 import csv
