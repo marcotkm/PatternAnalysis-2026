@@ -97,6 +97,41 @@ Inactive parameters are frozen during each update, while gradients can pass thro
 
 This is an adapted implementation, not an exact reproduction of the authors' code. Differences include standardisation with a linear recovery output, Gaussian noise and the original 1:1:1 update schedule. The reference implementation uses two generator/supervisor and embedder/recovery updates per discriminator opportunity and gates discriminator updates by loss [2]. The later every-second-batch experiment tests a related schedule rather than reproducing it exactly.
 
+### Training Behaviour
+
+![Reconstruction and supervisor pretraining curves](results/training_curves/pretraining.png)
+
+Reconstruction training and validation losses decreased throughout
+pretraining. Validation reconstruction MSE reached 0.385112 at epoch 20.
+Supervisor validation MSE fell below the persistence baseline at epoch 9,
+with its best value of 0.002671 at epoch 19, compared with 0.003277 for
+persistence. These results support successful pretraining but do not
+establish realistic synthetic market dynamics.
+
+Training losses are averaged over batches while parameters are being
+updated, whereas validation losses are evaluated after each epoch.
+The chronological splits also contain different market periods, so the
+lower validation loss should not be interpreted as proof of superior
+generalisation.
+
+![Joint training with different structural constraint weights](results/training_curves/joint_constraint_comparison.png)
+
+The three joint-training runs used the same discriminator update schedule
+and constraint weights of 0, 1 and 5. Validation reconstruction MSE followed
+similar trajectories, reaching approximately 0.31 after 50 epochs.
+Adversarial losses fluctuated, while the moment loss decreased rapidly
+before remaining near 0.45.
+
+Weight 5 produced a lower recorded unweighted structural penalty than
+weight 1, but neither reduced it to zero. The weight-zero run did not
+record this penalty and is therefore omitted from that panel. Similar
+reconstruction losses across runs did not imply similar generation
+quality: the separate structural, distributional and temporal evaluations
+remain necessary for judging backtesting suitability.
+
+These curves describe individual training runs; they do not measure
+variability across independent training seeds.
+
 ## Structural-Penalty Extension
 
 The unconstrained objectives do not explicitly enforce price ordering. The extension reconstructs synthetic prices during training using paired training-window anchors:
@@ -291,6 +326,13 @@ python visualise.py --data-dir "$DATA_DIR" \
   --output-dir results/figures_constraint_reproduce
 ```
 
+Training curves can be regenerated from the saved CSV histories without
+the dataset or model checkpoints:
+
+```bash
+python plot_training.py
+```
+
 The λ=0 and λ=5 controls use the same constrained-run command with the corresponding weight and a distinct run name. Run directories must not already exist. Jobs on Rangpur are submitted through Slurm using the course partition/account; do not train on the login node. For the initially selected archived checkpoint, the completed test evaluation uses `evaluate.py --split test --bins 50`.
 
 Retraining can differ across platforms and package versions. The commands above describe the intended workflow; a clean-environment reproduction check remains to be completed before submission.
@@ -301,7 +343,7 @@ The experiments do not establish reliable backtesting data. Remaining ladder inv
 
 Scope is limited to a single day, short event-time windows, a fixed set of initial training anchors, and one training seed per configuration. Unconditional TimeGAN and state-conditioned VAR have different conditioning. KL is sensitive to histogram construction, while independent-window SSIM is limited by pairing. Neither the structural penalty nor the volume audit establishes event-level volume conservation, queue dynamics or a complete market simulator.
 
-The constrained study provides evidence of a trade-off: explicit structural pressure can reduce ordering failures, but stronger pressure need not improve return realism. Weight 1 at epoch 50 is a useful exploratory compromise; all evaluated models remain below the required performance targets. Future work should consider anchor-conditioned or structurally valid price representations, explicit modelling of unchanged prices, independent training repeats and additional trading days. Such extensions require fresh evaluation rather than assuming validity implies realism.
+The constrained study provides evidence of a trade-off: explicit structural pressure can reduce ordering failures, but stronger pressure need not improve return realism. Weight 1 at epoch 50 is a useful exploratory compromise. No evaluated configuration met both KL thresholds and the SSIM threshold. Future work should consider anchor-conditioned or structurally valid price representations, explicit modelling of unchanged prices, independent training repeats and additional trading days. Such extensions require fresh evaluation rather than assuming validity implies realism.
 
 ## References
 
