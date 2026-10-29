@@ -281,6 +281,12 @@ Joint-stage timing includes training, validation, fixed-noise monitoring and che
 Run commands from this project directory. Raw CSV data and checkpoints are excluded from Git. Supply the two AMZN message/order book CSV files in a directory outside the repository. PyTorch must be installed separately for the intended CPU/CUDA environment; the current `requirements.txt` pins NumPy, Matplotlib and scikit-image only. Versions used are documented above.
 
 ```bash
+# Tested macOS CPU environment; choose a new environment directory.
+python3.11 -m venv /tmp/comp3710-reproduction-env
+source /tmp/comp3710-reproduction-env/bin/activate
+python -m pip install --upgrade pip
+python -m pip install torch==2.14.1
+
 python -m pip install -r requirements.txt
 python -c "import torch; print(torch.__version__)"
 
@@ -340,7 +346,9 @@ python plot_training.py
 
 The λ=0 and λ=5 controls use the same constrained-run command with the corresponding weight and a distinct run name. Run directories must not already exist. Jobs on Rangpur are submitted through Slurm using the course partition/account; do not train on the login node. The original archived checkpoint was evaluated using python evaluate.py with --split test --bins 50 and the required dataset and checkpoint paths. The equivalent evaluation is now available through python train.py --stage evaluate.
 
-Retraining can differ across platforms and package versions. The commands above describe the intended workflow; a clean-environment reproduction check remains to be completed before submission.
+A fresh Python environment on the same Apple M1 Mac reproduced reconstruction pretraining, supervisor pretraining, original joint training, validation evaluation and prediction visualisation on 29 October 2026. The environment used Python 3.11.15, NumPy 2.4.6, PyTorch 2.14.1, Matplotlib 3.11.2 and scikit-image 0.26.0. Reported validation metrics matched the original run to the displayed precision; the evaluation output is saved in `results/reproduction_validation.txt`.
+
+This verifies CPU reproduction on the same machine and software versions. It does not establish cross-platform reproducibility or fresh-environment reproduction of the CUDA experiments.
 
 ## Limitations and Engineering Recommendation
 
